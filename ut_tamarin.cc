@@ -192,7 +192,7 @@ void processTamarinLemmas(const string& tamarin_file,
 int printLemmaNames(const CmdParameters& parameters){
   auto lemma_names = readLemmaNamesFromTamarin(parameters.input_theory_path);
   if(parameters.output_path != ""){
-    ofstream output_file_stream (parameters.output_path, std::ofstream::out);
+    ofstream output_file_stream(parameters.output_path, std::ofstream::out);
     writeLemmaNames(lemma_names, output_file_stream); 
   } else {
     writeLemmaNames(lemma_names, cout);
