@@ -66,7 +66,7 @@ string runTamarinAndWriteOutputToNewTempfile(const string& tamarin_file_path,
                                     const string& tamarin_parameters=""){
   string temp_file = ".temputm";
   executeShellCommand("tamarin-prover " + tamarin_parameters + 
-                      tamarin_file_path + " 1> " + temp_file + " 2> /dev/null");
+      tamarin_file_path + " 1> " + temp_file + " 2> /dev/null");
   return temp_file;
 }
 
@@ -83,8 +83,8 @@ string getLemmaName(string tamarin_line){
   return tamarin_line.substr(0, tamarin_line.find(' '));
 }
 
-// Takes as input a stream that contains a list of lemma names (one lemma name
-// per line) and returns these lemma names in a vector.
+// Takes as input a stream that points to a list of lemma names (one 
+// lemma name per line) and returns these lemma names in a vector.
 vector<string> readLemmaNames(istream& input_stream){
   vector<string> lemma_names;
   string line;
@@ -208,7 +208,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters){
   if(parameters.output_path != ""){
     ofstream ofs (parameters.output_path, std::ofstream::out);
     processTamarinLemmas(parameters.input_theory_path, lemma_names,
-                     parameters.timeout, ofs, parameters.continue_after_failure);
+                   parameters.timeout, ofs, parameters.continue_after_failure);
   } else {
     processTamarinLemmas(parameters.input_theory_path, lemma_names, 
             parameters.timeout, cout, parameters.continue_after_failure);
@@ -243,7 +243,8 @@ int main (int argc, char *argv[])
                  "specified, no timeout is used.");
 
   parameters.continue_after_failure = false;
-  app.add_flag("-c,--continue_after_failure", parameters.continue_after_failure,
+  app.add_flag("-c,--continue_after_failure", 
+               parameters.continue_after_failure,
                "If set, the test procedure continues in case Tamarin "
                "fails to prove a lemma (due to a timeout or a false lemma), "
                "otherwise Tamarin terminates after failure.");
