@@ -194,11 +194,8 @@ void processTamarinLemmas(const string& tamarin_file,
 
 // Runs the tool in the mode where a Tamarin theory file (".spthy") is read 
 // and a list of the lemmas occurring in that file is written to a file.
-int printLemmaNames(const CmdParameters& parameters){
+int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
   auto lemma_names = readLemmaNamesFromTamarin(parameters.input_theory_path);
-  unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
-    nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
-  ostream& output_stream = output_file_stream ? *output_file_stream : cout;
   writeLemmaNames(lemma_names, output_stream); 
   return 0;
 }
@@ -237,11 +234,8 @@ vector<string> getNamesOfLemmasToVerify(const string& tamarin_file_path,
 // 'input_theory_path', otherwise it runs only on the lemmas that are listed
 // in the file at 'lemma_names_path'. Prints statistics either to a file 
 // (if 'output_path' is set) or to the standard output.
-int runTamarinOnLemmas(const CmdParameters& parameters){
-  unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
-    nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
-  ostream& output_stream = output_file_stream ? *output_file_stream : cout;
-
+int runTamarinOnLemmas(const CmdParameters& parameters, 
+                       ostream& output_stream){
   auto file_name = parameters.input_theory_path;
   if(file_name.find('/') != string::npos)
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
@@ -308,9 +302,13 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(app, argc, argv);
 
+  unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
+    nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
+  ostream& output_stream = output_file_stream ? *output_file_stream : cout;
+
   if(!parameters.generate_lemma_file){ 
-    return runTamarinOnLemmas(parameters);
+    return runTamarinOnLemmas(parameters, output_stream);
   } else {
-    return printLemmaNames(parameters);
+    return printLemmaNames(parameters, output_stream);
   }
 }
