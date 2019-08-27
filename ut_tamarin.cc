@@ -26,14 +26,31 @@ struct CmdParameters{
   bool continue_after_failure;
 };
 
-enum ProverResult {kTrue, kFalse, kUnknown};
+enum class ProverResult {True, False, Unknown};
 
 struct TamarinOutput{
   ProverResult result;
   int duration; // in seconds
 };
 
-// Returns the duration of the execution in seconds
+string to_string(const ProverResult& prover_result) {
+  switch(prover_result)
+  {
+    case ProverResult::True: return "verified";
+    case ProverResult::False: return "FALSE";
+    default: return "ANALYSIS INCOMPLETE";
+  }
+}
+
+string to_string(const TamarinOutput& tamarin_output) {
+  string formatted = to_string(tamarin_output.result);
+  formatted += " (duration: " + to_string(tamarin_output.duration) + " second"
+               + (tamarin_output.duration != 1 ? "s" : "") + ")";
+  return formatted;
+}
+
+// Executes a shell command and returns the duration of the 
+// execution in seconds.
 int executeShellCommand(const string& cmd){
   auto start_time = std::chrono::high_resolution_clock::now();
   std::system(cmd.c_str());
@@ -42,13 +59,14 @@ int executeShellCommand(const string& cmd){
                             (end_time - start_time).count();
 }
 
-// Executes Tamarin with the given parameters and writes the output
-// to a temp file. Returns the path of the temp file.
-string writeTamarinOutputToTempfile(const string& tamarin_file_path,
+// Executes Tamarin with the given parameters and writes the needed output
+// to a temp file while relocating the other output to /dev/null. 
+// Returns the path of the resulting temp file.
+string runTamarinAndWriteOutputToNewTempfile(const string& tamarin_file_path,
                                     const string& tamarin_parameters=""){
   string temp_file = ".temputm";
   executeShellCommand("tamarin-prover " + tamarin_parameters + 
-                      tamarin_file_path + " > " + temp_file);
+                      tamarin_file_path + " 1> " + temp_file + " 2> /dev/null");
   return temp_file;
 }
 
@@ -93,8 +111,8 @@ void moveTamarinOutputStreamToLemmaNames(istream& output_stream){
 
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
 // containing all the names of the lemmas specified in the file.
-vector<string> readLemmaNamesFromTamarin(const string& file_name){
-  auto temp_file = writeTamarinOutputToTempfile(file_name);
+vector<string> readLemmaNamesFromTamarin(const string& tamarin_file_name){
+  auto temp_file = runTamarinAndWriteOutputToNewTempfile(tamarin_file_name);
   ifstream file_stream {temp_file, ifstream::in};
   moveTamarinOutputStreamToLemmaNames(file_stream);
   auto lemma_names = readLemmaNames(file_stream);
@@ -112,10 +130,10 @@ ProverResult extractResultForLemma(istream& stream_of_tamarin_output,
         && getLemmaName(line) != lemma_name);
 
   if(line.find("falsified") != string::npos)
-    return kFalse;
+    return ProverResult::False;
   else if(line.find("verified") != string::npos)
-    return kTrue;
-  return kUnknown;
+    return ProverResult::True;
+  return ProverResult::Unknown;
 }
 
 // Takes as input a vector of lemma names and an output stream and writes 
@@ -128,15 +146,15 @@ void writeLemmaNames(const vector<string>& lemma_names,
 }
 
 // Takes as input a Tamarin theory file (".spthy"), the name of a lemma,
-// and a timeout and then runs Tamarin on the given lemma. Returns some
-// output/statistics (like Tamarin's result or the duration).
+// and a timeout, and then runs Tamarin on the given lemma. Returns some
+// output/statistics (like Tamarin's result and the execution duration).
 TamarinOutput processTamarinLemma(const string& tamarin_file,
                                   const string& lemma_name, int timeout){
   string temp_file = ".temptam";
   string cmd = "";
-  if(timeout >= 0) cmd += "timeout " + to_string(timeout) + " ";
+  if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
   cmd += "tamarin-prover --prove=" + lemma_name + " " + tamarin_file 
-       + " > " + temp_file;
+       + " 1> " + temp_file + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
@@ -148,39 +166,24 @@ TamarinOutput processTamarinLemma(const string& tamarin_file,
   return tamarin_output;
 }
 
-// Takes as input a TamarinOutput object and transforms it to a readable string.
-string to_string(const TamarinOutput& tamarin_output) {
-  string formatted = "";
-  if(tamarin_output.result == kTrue) formatted += "verified";
-  if(tamarin_output.result == kFalse) formatted += "FALSE";
-  if(tamarin_output.result == kUnknown) formatted += "UNKNOWN";
-  formatted += " (duration: " + to_string(tamarin_output.duration) + " second"
-               + (tamarin_output.duration != 1 ? "s" : "") + ")";
-  return formatted;
-}
-
-// Takes as input a Tamarin theory file (".spthy"), a list of lemmas, a timeout,
-// and an outputstream and then runs Tamarin on all the specified lemmas.
-// The timeout is a per-lemma timeout. The results are written to the given
-// output stream.
+// Takes as input a Tamarin theory file (".spthy"), a list of lemmas, 
+// a timeout, and an output stream and then runs Tamarin on all the 
+// specified lemmas. The timeout is a per-lemma timeout. The results are 
+// written to the given output stream.
 void processTamarinLemmas(const string& tamarin_file,
                            const vector<string>& lemma_names,
                            int timeout, ostream& output_stream,
                            bool continue_after_failure){
-  vector<string> results;
-  for(auto lemma_name : lemma_names){
-    auto stats = processTamarinLemma(tamarin_file, lemma_name, timeout);
-    results.push_back("lemma " + lemma_name + ": " + to_string(stats));
-    if(!continue_after_failure && stats.result != kTrue) break;
-  }
-  string decoration = "=========================";
-  output_stream << decoration << " RESULTS " << decoration << endl;
-  output_stream << "Tamarin File: " << tamarin_file << endl;
+  output_stream << "Tamarin Tests for file '" << tamarin_file << "'" << endl;
   output_stream << "Timeout: " << (timeout <= 0 ? "no timeout" : 
                                    to_string(timeout) + " second" +
-                                   (timeout > 1 ? "s" : "")) << endl;
-  for(auto result : results){
-    output_stream << result << endl;
+                                   (timeout > 1 ? "s" : "")) << endl << endl;
+  for(int i=0;i < lemma_names.size();i++){
+    output_stream << "lemma " << lemma_names[i] << " (" << (i+1) << "/" << 
+                     lemma_names.size() << ") ";
+    auto stats = processTamarinLemma(tamarin_file, lemma_names[i], timeout);
+    output_stream << to_string(stats) << endl;
+    if(!continue_after_failure && stats.result != ProverResult::True) break;
   }
 }
 
@@ -196,7 +199,6 @@ int printLemmaNames(const CmdParameters& parameters){
   }
   return 0;
 }
-
 
 // Runs the tool in the mode where a Tamarin theory file (".spthy") and a file
 // with a list of lemmas are given and Tamarin is then executed on all the
@@ -237,19 +239,19 @@ int main (int argc, char *argv[])
 
   parameters.timeout = 0;
   app.add_option("-t,--timeout", parameters.timeout,
-                 "Timeout (per lemma) for Tamarin. If not specified, "
-                 "there is no timeout.");
+                 "Timeout in seconds (per lemma) for Tamarin. If not "
+                 "specified, no timeout is used.");
 
   parameters.continue_after_failure = false;
   app.add_flag("-c,--continue_after_failure", parameters.continue_after_failure,
-               "If set, the test procedure continues if Tamarin "
-               "fails to prove a lemma (due to timeout or a false lemma), "
-               "otherwise Tamarin terminates.");
+               "If set, the test procedure continues in case Tamarin "
+               "fails to prove a lemma (due to a timeout or a false lemma), "
+               "otherwise Tamarin terminates after failure.");
 
   parameters.output_path = "";
   app.add_option("output_file", parameters.output_path,
-                 "File to which the results should be printed. If not "
-                 "specified, results are written to standard output.")
+                 "Optional file to which the results should be printed. If "
+                 "not specified, results are written to standard output.")
                  ->type_name("FILE");
 
   CLI11_PARSE(app, argc, argv);
