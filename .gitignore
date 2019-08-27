@@ -1,0 +1,6 @@
+ut_tamarin
+*.ut
+.temp*
+*.vscode
+*.swp
+.fuse_hidden*

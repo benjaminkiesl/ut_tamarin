@@ -1,0 +1,32 @@
+theory test_protocol
+begin
+
+// BEGIN Rules
+
+rule Init:
+    [ Fr(~X) ]
+    --[ Start(~X) ]->
+    [ Hello(~X) ]
+
+rule Loop:
+    [ Hello(~X) ]
+    --[ Loop(~X) ]->
+    [ Hello(~X) ]
+
+
+// END Rules
+
+// BEGIN Statements
+
+lemma true_statement:
+    "All X #i. K(X) @ i ==> K(X) @ i"
+
+lemma false_statement:
+    "All X #i. K(X) @ i ==> not K(X) @ i"
+
+lemma non_terminating_statement:
+    "All X #i. Loop(X) @ i ==> Ex #j. j < i & Start(X) @ j"
+
+// END Statements
+
+end

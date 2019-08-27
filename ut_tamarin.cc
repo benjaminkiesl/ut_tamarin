@@ -12,6 +12,7 @@ using std::to_string;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::flush;
 using std::vector;
 using std::istream;
 using std::ostream;
@@ -24,6 +25,7 @@ struct CmdParameters{
   string output_path;
   int timeout;
   bool continue_after_failure;
+  bool generate_lemma_file;
 };
 
 enum class ProverResult {True, False, Unknown};
@@ -176,15 +178,19 @@ void processTamarinLemmas(const string& tamarin_file,
                            bool continue_after_failure){
   output_stream << "Tamarin Tests for file '" << tamarin_file << "'" << endl;
   output_stream << "Timeout: " << (timeout <= 0 ? "no timeout" : 
-                                   to_string(timeout) + " second" +
-                                   (timeout > 1 ? "s" : "")) << endl << endl;
+                   (to_string(timeout) + " second" + (timeout > 1 ? "s" : ""))) 
+                   << " per lemma" << endl << endl;
+  int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
     output_stream << "lemma " << lemma_names[i] << " (" << (i+1) << "/" << 
-                     lemma_names.size() << ") ";
+                     lemma_names.size() << ") " << flush;
     auto stats = processTamarinLemma(tamarin_file, lemma_names[i], timeout);
     output_stream << to_string(stats) << endl;
+    overall_duration += stats.duration;
     if(!continue_after_failure && stats.result != ProverResult::True) break;
   }
+  output_stream << endl << "Overall duration: " << overall_duration << 
+    " second" << (overall_duration > 1 ? "s" : "") << endl;
 }
 
 // Runs the tool in the mode where a Tamarin theory file (".spthy") is read 
@@ -200,11 +206,15 @@ int printLemmaNames(const CmdParameters& parameters){
   return 0;
 }
 
-// Runs the tool in the mode where a Tamarin theory file (".spthy") and a file
-// with a list of lemmas are given and Tamarin is then executed on all the
-// lemmas. Statistics are then printed to either a file or to standard output.
+// Runs Tamarin on lemmas. If the parameter 'lemma_names_path' is set
+// Tamarin runs on all lemmas specified in the Tamarin theory file 
+// 'input_theory_path', otherwise it runs only on the lemmas that are listed
+// in the file at 'lemma_names_path'. Prints statistics either to a file 
+// (if 'output_path' is set) or to the standard output.
 int runTamarinOnLemmas(const CmdParameters& parameters){
-  auto lemma_names = readLemmaNamesFromLemmaFile(parameters.lemma_names_path);
+  auto lemma_names = parameters.lemma_names_path != "" ?
+          readLemmaNamesFromLemmaFile(parameters.lemma_names_path) :
+          readLemmaNamesFromTamarin(parameters.input_theory_path);
   if(parameters.output_path != ""){
     ofstream output_file_stream(parameters.output_path, std::ofstream::out);
     processTamarinLemmas(parameters.input_theory_path, lemma_names,
@@ -223,8 +233,7 @@ int main (int argc, char *argv[])
 
   CLI::App app{
     "UT Tamarin is a small tool that runs the Tamarin prover on selected\n"
-    "files and lemmas and outputs the result, allowing you to specify a" 
-    "per-lemma timeout" 
+    "files and lemmas and outputs statistics." 
   };
   
   parameters.input_theory_path = "";
@@ -235,8 +244,15 @@ int main (int argc, char *argv[])
   parameters.lemma_names_path = "";
   app.add_option("-l,--lemma_file", parameters.lemma_names_path,
                  "Path to a file containing the names of the lemmas that "
-                 "should be verified (one name per line)."
+                 "should be verified (one name per line). If not specified, "
+                 "all lemmas are verified."
                 )->check(CLI::ExistingFile);
+
+  parameters.generate_lemma_file = false;
+  app.add_flag("-g,--generate_lemmas", 
+               parameters.generate_lemma_file,
+               "If set, the tool just outputs a list of all lemmas that are "
+               "specified in the given input theory file");
 
   parameters.timeout = 0;
   app.add_option("-t,--timeout", parameters.timeout,
@@ -251,13 +267,13 @@ int main (int argc, char *argv[])
                "otherwise Tamarin terminates after failure.");
 
   parameters.output_path = "";
-  app.add_option("output_file", parameters.output_path,
+  app.add_option("-o,--output_file", parameters.output_path,
                  "Optional file to which the results should be printed. If "
-                 "not specified, results are written to standard output.")
+                 "not specified, results are written to the standard output.")
                  ->type_name("FILE");
 
   CLI11_PARSE(app, argc, argv);
 
-  if(parameters.lemma_names_path != "") return runTamarinOnLemmas(parameters);
+  if(!parameters.generate_lemma_file) return runTamarinOnLemmas(parameters);
   else return printLemmaNames(parameters);
 }
