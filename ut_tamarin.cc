@@ -206,9 +206,10 @@ int printLemmaNames(const CmdParameters& parameters){
 int runTamarinOnLemmas(const CmdParameters& parameters){
   auto lemma_names = readLemmaNamesFromLemmaFile(parameters.lemma_names_path);
   if(parameters.output_path != ""){
-    ofstream ofs (parameters.output_path, std::ofstream::out);
+    ofstream output_file_stream(parameters.output_path, std::ofstream::out);
     processTamarinLemmas(parameters.input_theory_path, lemma_names,
-                   parameters.timeout, ofs, parameters.continue_after_failure);
+                   parameters.timeout, output_file_stream, 
+                   parameters.continue_after_failure);
   } else {
     processTamarinLemmas(parameters.input_theory_path, lemma_names, 
             parameters.timeout, cout, parameters.continue_after_failure);
