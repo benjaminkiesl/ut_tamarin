@@ -196,12 +196,10 @@ void processTamarinLemmas(const string& tamarin_file,
 // and a list of the lemmas occurring in that file is written to a file.
 int printLemmaNames(const CmdParameters& parameters){
   auto lemma_names = readLemmaNamesFromTamarin(parameters.input_theory_path);
-  if(parameters.output_path != ""){
-    ofstream output_file_stream(parameters.output_path, std::ofstream::out);
-    writeLemmaNames(lemma_names, output_file_stream); 
-  } else {
-    writeLemmaNames(lemma_names, cout);
-  }
+  unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
+    nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
+  ostream& output_stream = output_file_stream ? *output_file_stream : cout;
+  writeLemmaNames(lemma_names, output_stream); 
   return 0;
 }
 
@@ -310,6 +308,9 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(app, argc, argv);
 
-  if(!parameters.generate_lemma_file) return runTamarinOnLemmas(parameters);
-  else return printLemmaNames(parameters);
+  if(!parameters.generate_lemma_file){ 
+    return runTamarinOnLemmas(parameters);
+  } else {
+    return printLemmaNames(parameters);
+  }
 }
