@@ -37,18 +37,25 @@ struct TamarinOutput{
   int duration; // in seconds
 };
 
-string to_string(const ProverResult& prover_result) {
-  switch(prover_result)
-  {
-    case ProverResult::True: return "verified";
-    case ProverResult::False: return "FALSE";
-    default: return "ANALYSIS INCOMPLETE";
+string to_string(const ProverResult& prover_result,
+                 bool is_colorized=false) {
+  string result_string;
+  if(prover_result == ProverResult::True) result_string = "verified";
+  else if(prover_result == ProverResult::False) result_string = "false";
+  else result_string = "analysis incomplete";
+  if(is_colorized){
+    string prefix = "\033[";
+    string color_code = prover_result == ProverResult::True ? "32" :
+                        prover_result == ProverResult::False ? "31" : "33";
+    result_string = prefix + color_code + "m" + result_string + "\033[m";
   }
+  return result_string;
 }
 
-string to_string(const TamarinOutput& tamarin_output) {
-  string formatted = to_string(tamarin_output.result);
-  formatted += " (duration: " + to_string(tamarin_output.duration) + " second"
+string to_string(const TamarinOutput& tamarin_output, 
+                 bool is_colorized=false) {
+  string formatted = to_string(tamarin_output.result, is_colorized);
+  formatted += " (" + to_string(tamarin_output.duration) + " second"
                + (tamarin_output.duration != 1 ? "s" : "") + ")";
   return formatted;
 }
@@ -111,10 +118,10 @@ vector<string> readLemmaNamesFromLemmaFile(const string& file_name){
 
 // Takes as input a stream to output produced by Tamarin and moves the stream
 // to the first line of the part where the results for lemmas are displayed.
-void moveTamarinOutputStreamToLemmaNames(istream& output_stream){
+void moveTamarinStreamToLemmaNames(istream& tamarin_stream){
   string line;
-  while(std::getline(output_stream, line) && line.substr(0,5) != "=====");
-  for(int i=1;i<=4;i++) std::getline(output_stream, line);
+  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
+  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
 }
 
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
@@ -124,7 +131,7 @@ vector<string> readLemmaNamesFromSpthyFile(const string& tamarin_path,
   auto temp_file = runTamarinAndWriteOutputToNewTempfile(tamarin_path,
                                                          spthy_file_path);
   ifstream file_stream {temp_file, ifstream::in};
-  moveTamarinOutputStreamToLemmaNames(file_stream);
+  moveTamarinStreamToLemmaNames(file_stream);
   auto lemma_names = readLemmaNames(file_stream);
   std::remove(temp_file.c_str());
   return lemma_names;
@@ -135,7 +142,7 @@ vector<string> readLemmaNamesFromSpthyFile(const string& tamarin_path,
 ProverResult extractResultForLemma(istream& stream_of_tamarin_output,
                                    const string& lemma_name){
   string line;
-  moveTamarinOutputStreamToLemmaNames(stream_of_tamarin_output);
+  moveTamarinStreamToLemmaNames(stream_of_tamarin_output);
   while(getline(stream_of_tamarin_output, line) 
         && getLemmaName(line) != lemma_name);
 
@@ -188,11 +195,11 @@ void processTamarinLemmas(const string& tamarin_path,
                           ostream& output_stream){
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
-    output_stream << "lemma " << lemma_names[i] << " (" << (i+1) << "/" << 
+    output_stream << lemma_names[i] << " (" << (i+1) << "/" << 
                      lemma_names.size() << ") " << flush;
     auto stats = processTamarinLemma(tamarin_path, spthy_file_path, 
         lemma_names[i], timeout);
-    output_stream << to_string(stats) << endl;
+    output_stream << to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     if(!continue_after_failure && stats.result != ProverResult::True) break;
   }
