@@ -4,6 +4,7 @@
 #include <fstream>
 #include <chrono>
 #include <memory>
+#include <csignal>
 #include "third-party/cli11/CLI11.hpp"
 
 using std::string;
@@ -19,6 +20,8 @@ using std::ifstream;
 using std::ofstream;
 using std::unique_ptr;
 using std::make_unique;
+
+const string kTempfileName = ".utemp";
 
 struct CmdParameters{
   string tamarin_path;
@@ -79,10 +82,9 @@ string runTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
                                     const string& spthy_file_path,
                                     const string& tamarin_parameters=""){
-  string temp_file = ".temputm";
   executeShellCommand(tamarin_path + " " + tamarin_parameters + 
-       spthy_file_path + " 1> " + temp_file + " 2> /dev/null");
-  return temp_file;
+       spthy_file_path + " 1> " + kTempfileName + " 2> /dev/null");
+  return kTempfileName;
 }
 
 // Trims white space from the left of the given string.
@@ -168,19 +170,18 @@ void writeLemmaNames(const vector<string>& lemma_names,
 TamarinOutput processTamarinLemma(const string& tamarin_path,
                                   const string& spthy_file_path,
                                   const string& lemma_name, int timeout){
-  string temp_file = ".temptam";
   string cmd = "";
   if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
   cmd += tamarin_path + " --prove=" + lemma_name + " " + spthy_file_path 
-       + " 1> " + temp_file + " 2> /dev/null";
+       + " 1> " + kTempfileName + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
 
-  ifstream file_stream {temp_file, ifstream::in};
+  ifstream file_stream {kTempfileName, ifstream::in};
   tamarin_output.result = extractResultForLemma(file_stream, lemma_name);
 
-  std::remove(temp_file.c_str());
+  std::remove(kTempfileName.c_str());
   return tamarin_output;
 }
 
@@ -274,6 +275,17 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   return 0;
 }
 
+void (*default_signal_handler)(int signal);
+string tamarin_process = "tamarin-prover";
+
+void signal_handler(int signal)
+{
+  std::system(("killall " + tamarin_process).c_str());
+  std::remove(kTempfileName.c_str());
+  std::signal(signal, default_signal_handler);
+  std::raise(signal);
+}
+
 int main (int argc, char *argv[])
 {
   CmdParameters parameters;
@@ -326,6 +338,14 @@ int main (int argc, char *argv[])
                  ->type_name("FILE");
 
   CLI11_PARSE(app, argc, argv);
+  
+  tamarin_process = parameters.tamarin_path;
+  if(tamarin_process.find('/') != string::npos){
+    tamarin_process = tamarin_process.substr(
+        tamarin_process.find_last_of('/')+1);
+  }
+
+  default_signal_handler = std::signal(SIGINT, signal_handler);
 
   unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
     nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
