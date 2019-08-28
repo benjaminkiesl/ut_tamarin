@@ -136,6 +136,7 @@ vector<string> readLemmaNamesFromSpthyFile(const string& tamarin_path,
   moveTamarinStreamToLemmaNames(file_stream);
   auto lemma_names = readLemmaNames(file_stream);
   std::remove(temp_file.c_str());
+  std::remove("halama.txt");
   return lemma_names;
 }
 
@@ -280,7 +281,7 @@ string tamarin_process = "tamarin-prover";
 
 void signal_handler(int signal)
 {
-  std::system(("killall " + tamarin_process).c_str());
+  std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
   std::remove(kTempfileName.c_str());
   std::signal(signal, default_signal_handler);
   std::raise(signal);
