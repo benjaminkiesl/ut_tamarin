@@ -1,12 +1,10 @@
-#include <iostream>
 #include <string>
 #include <vector>
+#include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <cstdio>
 #include <chrono>
 #include <memory>
-#include "cli11/CLI11.hpp"
+#include "third-party/cli11/CLI11.hpp"
 
 using std::string;
 using std::to_string;
@@ -23,7 +21,8 @@ using std::unique_ptr;
 using std::make_unique;
 
 struct CmdParameters{
-  string input_theory_path;
+  string tamarin_path;
+  string spthy_file_path;
   string lemma_names_path;
   string output_path;
   int timeout;
@@ -58,7 +57,9 @@ string to_string(const TamarinOutput& tamarin_output) {
 // execution in seconds.
 int executeShellCommand(const string& cmd){
   auto start_time = std::chrono::high_resolution_clock::now();
-  std::system(cmd.c_str());
+  int status;
+  auto fp = popen(cmd.c_str(), "r");
+  pclose(fp);
   auto end_time = std::chrono::high_resolution_clock::now();
   return std::chrono::duration_cast<std::chrono::seconds>
                             (end_time - start_time).count();
@@ -67,11 +68,13 @@ int executeShellCommand(const string& cmd){
 // Executes Tamarin with the given parameters and writes the needed output
 // to a temp file while relocating the other output to /dev/null. 
 // Returns the path of the resulting temp file.
-string runTamarinAndWriteOutputToNewTempfile(const string& tamarin_file_path,
+string runTamarinAndWriteOutputToNewTempfile(
+                                    const string& tamarin_path,
+                                    const string& spthy_file_path,
                                     const string& tamarin_parameters=""){
   string temp_file = ".temputm";
-  executeShellCommand("tamarin-prover " + tamarin_parameters + 
-      tamarin_file_path + " 1> " + temp_file + " 2> /dev/null");
+  executeShellCommand(tamarin_path + " " + tamarin_parameters + 
+       spthy_file_path + " 1> " + temp_file + " 2> /dev/null");
   return temp_file;
 }
 
@@ -116,8 +119,10 @@ void moveTamarinOutputStreamToLemmaNames(istream& output_stream){
 
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
 // containing all the names of the lemmas specified in the file.
-vector<string> readLemmaNamesFromTamarin(const string& tamarin_file_name){
-  auto temp_file = runTamarinAndWriteOutputToNewTempfile(tamarin_file_name);
+vector<string> readLemmaNamesFromSpthyFile(const string& tamarin_path,
+    const string& spthy_file_path){
+  auto temp_file = runTamarinAndWriteOutputToNewTempfile(tamarin_path,
+                                                         spthy_file_path);
   ifstream file_stream {temp_file, ifstream::in};
   moveTamarinOutputStreamToLemmaNames(file_stream);
   auto lemma_names = readLemmaNames(file_stream);
@@ -153,12 +158,13 @@ void writeLemmaNames(const vector<string>& lemma_names,
 // Takes as input a Tamarin theory file (".spthy"), the name of a lemma,
 // and a timeout, and then runs Tamarin on the given lemma. Returns some
 // output/statistics (like Tamarin's result and the execution duration).
-TamarinOutput processTamarinLemma(const string& tamarin_file,
+TamarinOutput processTamarinLemma(const string& tamarin_path,
+                                  const string& spthy_file_path,
                                   const string& lemma_name, int timeout){
   string temp_file = ".temptam";
   string cmd = "";
   if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
-  cmd += "tamarin-prover --prove=" + lemma_name + " " + tamarin_file 
+  cmd += tamarin_path + " --prove=" + lemma_name + " " + spthy_file_path 
        + " 1> " + temp_file + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
@@ -175,15 +181,17 @@ TamarinOutput processTamarinLemma(const string& tamarin_file,
 // a timeout, and an output stream and then runs Tamarin on all the 
 // specified lemmas. The timeout is a per-lemma timeout. The results are 
 // written to the given output stream.
-void processTamarinLemmas(const string& tamarin_file,
-                           const vector<string>& lemma_names,
-                           int timeout, ostream& output_stream,
-                           bool continue_after_failure){
+void processTamarinLemmas(const string& tamarin_path,
+                          const string& spthy_file_path,
+                          const vector<string>& lemma_names,
+                          int timeout, bool continue_after_failure, 
+                          ostream& output_stream){
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
     output_stream << "lemma " << lemma_names[i] << " (" << (i+1) << "/" << 
                      lemma_names.size() << ") " << flush;
-    auto stats = processTamarinLemma(tamarin_file, lemma_names[i], timeout);
+    auto stats = processTamarinLemma(tamarin_path, spthy_file_path, 
+        lemma_names[i], timeout);
     output_stream << to_string(stats) << endl;
     overall_duration += stats.duration;
     if(!continue_after_failure && stats.result != ProverResult::True) break;
@@ -195,7 +203,8 @@ void processTamarinLemmas(const string& tamarin_file,
 // Runs the tool in the mode where a Tamarin theory file (".spthy") is read 
 // and a list of the lemmas occurring in that file is written to a file.
 int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
-  auto lemma_names = readLemmaNamesFromTamarin(parameters.input_theory_path);
+  auto lemma_names = readLemmaNamesFromSpthyFile(parameters.tamarin_path,
+      parameters.spthy_file_path);
   writeLemmaNames(lemma_names, output_stream); 
   return 0;
 }
@@ -205,38 +214,39 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
 // which lemmas should be verified (namely those that are both in the lemma 
 // file and the Tamarin file). If a lemma name is in the lemma file but not 
 // in the Tamarin file, a warning message is printed.
-vector<string> getNamesOfLemmasToVerify(const string& tamarin_file_path,
+vector<string> getNamesOfLemmasToVerify(const string& tamarin_path,
+                                        const string& spthy_file_path,
                                         const string& lemma_file_path){
   vector<string> lemma_names;
-  auto lemma_names_in_tamarin_file = 
-    readLemmaNamesFromTamarin(tamarin_file_path);
+  auto lemma_names_in_spthy_file = 
+    readLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
   if(lemma_file_path != ""){
     auto lemma_names_in_lemma_file = 
       readLemmaNamesFromLemmaFile(lemma_file_path);
     for(auto lemma_name : lemma_names_in_lemma_file){
-      if(std::find(lemma_names_in_tamarin_file.begin(),
-                   lemma_names_in_tamarin_file.end(), lemma_name) ==
-                   lemma_names_in_tamarin_file.end()){
+      if(std::find(lemma_names_in_spthy_file.begin(),
+                   lemma_names_in_spthy_file.end(), lemma_name) ==
+                   lemma_names_in_spthy_file.end()){
         cerr << "Warning: lemma '" << lemma_name << "' is not declared in " <<
-          "the file '" << tamarin_file_path << "'." << endl;
+          "the file '" <<  spthy_file_path << "'." << endl;
       } else {
         lemma_names.push_back(lemma_name);
       }
     }
   } else {
-    lemma_names = lemma_names_in_tamarin_file;
+    lemma_names = lemma_names_in_spthy_file;
   }
   return lemma_names;
 }
 
 // Runs Tamarin on lemmas. If the parameter 'lemma_names_path' is set
-// Tamarin runs on all lemmas specified in the Tamarin theory file 
-// 'input_theory_path', otherwise it runs only on the lemmas that are listed
+// Tamarin runs on all lemmas specified in the Tamarin theory file at
+// 'spthy_file_path', otherwise it runs only on the lemmas that are listed
 // in the file at 'lemma_names_path'. Prints statistics either to a file 
 // (if 'output_path' is set) or to the standard output.
 int runTamarinOnLemmas(const CmdParameters& parameters, 
                        ostream& output_stream){
-  auto file_name = parameters.input_theory_path;
+  auto file_name = parameters.spthy_file_path;
   if(file_name.find('/') != string::npos)
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
 
@@ -246,11 +256,13 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                    (parameters.timeout > 1 ? "s" : ""))) << " per lemma" 
                     << endl;
 
-  auto lemma_names = getNamesOfLemmasToVerify(parameters.input_theory_path,
+  auto lemma_names = getNamesOfLemmasToVerify(parameters.tamarin_path,
+                                              parameters.spthy_file_path,
                                               parameters.lemma_names_path);
   output_stream << endl;
-  processTamarinLemmas(parameters.input_theory_path, lemma_names, 
-      parameters.timeout, output_stream, parameters.continue_after_failure);
+  processTamarinLemmas(parameters.tamarin_path,
+      parameters.spthy_file_path, lemma_names, parameters.timeout, 
+      parameters.continue_after_failure, output_stream);
 
   return 0;
 }
@@ -264,9 +276,9 @@ int main (int argc, char *argv[])
     "files and lemmas and outputs statistics." 
   };
   
-  parameters.input_theory_path = "";
-  app.add_option("input_theory_path", parameters.input_theory_path,
-                 "Path to a file containing a Tamarin theory."
+  parameters.spthy_file_path = "";
+  app.add_option("spthy_file_path", parameters.spthy_file_path,
+                 "Path to a .spthy file containing a Tamarin theory."
                 )->required()->check(CLI::ExistingFile);
 
   parameters.lemma_names_path = "";
@@ -275,6 +287,12 @@ int main (int argc, char *argv[])
                  "should be verified (one name per line). If not specified, "
                  "all lemmas are verified."
                 )->check(CLI::ExistingFile);
+
+  parameters.tamarin_path = "tamarin-prover";
+  app.add_option("-p,--tamarin_path", parameters.tamarin_path,
+                 "Path to the Tamarin executable. If not specified, Tamarin "
+                 "is called with the command 'tamarin-prover'."
+                );
 
   parameters.generate_lemma_file = false;
   app.add_flag("-g,--generate_lemmas", 
