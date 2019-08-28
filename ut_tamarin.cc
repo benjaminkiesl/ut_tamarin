@@ -320,10 +320,11 @@ int main (int argc, char *argv[])
                "If set, the tool just outputs a list of all lemmas that are "
                "specified in the given input theory file");
 
-  parameters.timeout = 0;
+  parameters.timeout = 600;
   app.add_option("-t,--timeout", parameters.timeout,
-                 "Timeout in seconds (per lemma) for Tamarin. If not "
-                 "specified, no timeout is used.");
+                 "Timeout in seconds (per lemma) for Tamarin. If set "
+                 "to 0, no timeout is used. By default, the timeout "
+                 "is 600 seconds.");
 
   parameters.continue_after_failure = false;
   app.add_flag("-c,--continue_after_failure", 
