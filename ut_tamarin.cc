@@ -32,6 +32,7 @@ struct CmdParameters{
   string blacklist_path;
   string output_path;
   string starting_lemma;
+  string penetration_lemma;
   int timeout;
   bool continue_after_failure;
   bool generate_lemma_file;
@@ -59,11 +60,14 @@ string to_string(const ProverResult& prover_result,
   return result_string;
 }
 
+string durationToString(int duration){
+  return to_string(duration) + " second" + (duration != 1 ? "s" : "");
+}
+
 string to_string(const TamarinOutput& tamarin_output, 
                  bool is_colorized=false) {
   string formatted = to_string(tamarin_output.result, is_colorized);
-  formatted += " (" + to_string(tamarin_output.duration) + " second"
-               + (tamarin_output.duration != 1 ? "s" : "") + ")";
+  formatted += " (" + durationToString(tamarin_output.duration) + ")";
   return formatted;
 }
 
@@ -173,10 +177,12 @@ void writeLemmaNames(const vector<string>& lemma_names,
 // output/statistics (like Tamarin's result and the execution duration).
 TamarinOutput processTamarinLemma(const string& tamarin_path,
                                   const string& spthy_file_path,
-                                  const string& lemma_name, int timeout){
+                                  const string& lemma_name, int timeout,
+                                  const string& tamarin_args=""){
   string cmd = "";
   if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
-  cmd += tamarin_path + " --prove=" + lemma_name + " " + spthy_file_path 
+  cmd += tamarin_path + " --prove=" + lemma_name + " " 
+       + tamarin_args + " " + spthy_file_path 
        + " 1> " + kTempfileName + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
@@ -332,17 +338,67 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
     << count[ProverResult::False] << ", " << to_string(ProverResult::Unknown)
     << ": " << count[ProverResult::Unknown] << endl;
 
-  output_stream << "Overall duration: " << overall_duration << 
-  " second" << (overall_duration > 1 ? "s" : "") << endl;
+  output_stream << "Overall duration: " << durationToString(overall_duration) 
+   << endl;
 
   return 0;
 }
 
-void (*default_signal_handler)(int signal);
+// Runs Tamarin on the given lemma, trying out all different heuristics until
+// either Tamarin succeeds or all strategies reach a timeout.
+int penetrateLemma(const CmdParameters& p, ostream& output_stream){
+  auto lemmas_in_file = readLemmaNamesFromSpthyFile(p.tamarin_path, 
+                                                    p.spthy_file_path);
+  auto lemma_it = std::find_if(lemmas_in_file.begin(), lemmas_in_file.end(), 
+        [&p](const string& lemma){ 
+          return lemma.size() >= p.penetration_lemma.size() &&
+                 lemma.substr(0, p.penetration_lemma.size()) == 
+                 p.penetration_lemma;
+        });
+  if(lemma_it == lemmas_in_file.end()){
+    cerr << "No lemma starting with '" << p.penetration_lemma << 
+      "' contained in file " << p.spthy_file_path << "." << endl;
+    return 1;
+  }
+
+  string penetration_lemma = *lemma_it;
+
+  output_stream << "Penetrating lemma '" << penetration_lemma << 
+    "' with a per-heuristic timeout of " << durationToString(p.timeout) <<
+    "." << endl << endl;
+
+  vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
+  for(auto heuristic : heuristics){
+    output_stream << "Heuristic: " << heuristic << " " << flush;
+    auto output = processTamarinLemma(p.tamarin_path, p.spthy_file_path, 
+        penetration_lemma, p.timeout, "--heuristic=" + heuristic);
+    output_stream << to_string(output.result, &output_stream == &cout) 
+      << " (" << durationToString(output.duration) << ")" << endl;
+    if(output.result == ProverResult::True) break; 
+  }
+  return 0;
+}
+
+// Holds the name of the tamarin process. This is needed for killing Tamarin 
+// when the program receives a SIGINT signal (sent by Ctrl+C).
 string tamarin_process = "tamarin-prover";
 
+// Sets the global 'tamarin_process' name. This is needed for killing Tamarin
+// in case the program receives a SIGINT signal (sent by Ctrl+C).
+void setTamarinProcess(const string& process_name){
+  if(process_name.find('/') != string::npos){
+    tamarin_process = process_name.substr(process_name.find_last_of('/')+1);
+  } else {
+    tamarin_process = process_name;
+  }
+}
+
+void (*default_signal_handler)(int signal);
+
+// Signal handler for SIGINT signal (sent by Ctrl+C)
 void signal_handler(int signal)
 {
+  cout << endl;
   std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
   std::remove(kTempfileName.c_str());
   std::signal(signal, default_signal_handler);
@@ -359,23 +415,18 @@ int main (int argc, char *argv[])
   };
   
   parameters.spthy_file_path = "";
-  app.add_option("spthy_file_path", parameters.spthy_file_path,
+  app.add_option("spthy_file", parameters.spthy_file_path,
                  "Path to a .spthy file containing a Tamarin theory."
                 )->required()->check(CLI::ExistingFile);
 
   parameters.whitelist_path = "";
   app.add_option("-w,--whitelist", parameters.whitelist_path,
-                 "Path to a file containing the names of the lemmas that "
-                 "should be verified (one name per line). If not specified, "
-                 "all lemmas are verified."
+                 "Lemma whitelist file (one lemma per line)."
                 )->check(CLI::ExistingFile);
 
   parameters.blacklist_path = "";
   app.add_option("-b,--blacklist", parameters.blacklist_path,
-                 "Path to a file containing the names of the lemmas that "
-                 "should not be verified (one name per line). If not "
-                 "specified, all lemmas are verified. The black list "
-                 "overrules the white list."
+                 "Lemma blacklist file (one lemma per line)."
                 )->check(CLI::ExistingFile);
 
   parameters.starting_lemma = "";
@@ -384,44 +435,39 @@ int main (int argc, char *argv[])
                 );
 
   parameters.tamarin_path = "tamarin-prover";
-  app.add_option("-p,--tamarin_path", parameters.tamarin_path,
-                 "Path to the Tamarin executable. If not specified, Tamarin "
-                 "is called with the command 'tamarin-prover'."
+  app.add_option("--tamarin_path", parameters.tamarin_path,
+                 "Path to the Tamarin executable (default: tamarin-prover)."
+                );
+  
+  parameters.penetration_lemma = "";
+  app.add_option("--penetrate", parameters.penetration_lemma,
+                 "Name of a lemma that should be proved."
                 );
 
   parameters.generate_lemma_file = false;
   app.add_flag("-g,--generate_lemmas", 
                parameters.generate_lemma_file,
-               "If set, the tool just outputs a list of all lemmas that are "
-               "specified in the given input theory file");
+               "Tells the tool to output all lemmas specified in the "
+               ".spthy file.");
 
   parameters.timeout = 600;
   app.add_option("-t,--timeout", parameters.timeout,
-                 "Timeout in seconds (per lemma) for Tamarin. If set "
-                 "to 0, no timeout is used. By default, the timeout "
-                 "is 600 seconds.");
+                 "Per-lemma timeout in seconds "
+                 "(0 means no timeout, default: 600 seconds).");
 
   parameters.continue_after_failure = false;
   app.add_flag("-c,--continue_after_failure", 
                parameters.continue_after_failure,
-               "If set, the test procedure continues in case Tamarin "
-               "fails to prove a lemma (due to a timeout or a false lemma), "
-               "otherwise Tamarin terminates after failure.");
+               "Tells the tool to continue if Tamarin fails to prove a lemma.");
 
   parameters.output_path = "";
   app.add_option("-o,--output_file", parameters.output_path,
-                 "Optional file to which the results should be printed. If "
-                 "not specified, results are written to the standard output.")
+                 "Optional file for output (otherwise standard output is used.")
                  ->type_name("FILE");
 
   CLI11_PARSE(app, argc, argv);
   
-  tamarin_process = parameters.tamarin_path;
-  if(tamarin_process.find('/') != string::npos){
-    tamarin_process = tamarin_process.substr(
-        tamarin_process.find_last_of('/')+1);
-  }
-
+  setTamarinProcess(parameters.tamarin_path);
   default_signal_handler = std::signal(SIGINT, signal_handler);
 
   unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
@@ -429,7 +475,11 @@ int main (int argc, char *argv[])
   ostream& output_stream = output_file_stream ? *output_file_stream : cout;
 
   if(!parameters.generate_lemma_file){ 
-    return runTamarinOnLemmas(parameters, output_stream);
+    if(parameters.penetration_lemma != ""){
+      return penetrateLemma(parameters, output_stream);
+    }else {
+      return runTamarinOnLemmas(parameters, output_stream);
+    }
   } else {
     return printLemmaNames(parameters, output_stream);
   }
