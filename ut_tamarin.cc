@@ -49,7 +49,7 @@ string to_string(const ProverResult& prover_result,
   string result_string;
   if(prover_result == ProverResult::True) result_string = "verified";
   else if(prover_result == ProverResult::False) result_string = "false";
-  else result_string = "analysis incomplete";
+  else result_string = "timeout";
   if(is_colorized){
     string prefix = "\033[";
     string color_code = prover_result == ProverResult::True ? "32" :
@@ -327,10 +327,10 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
        stats.result != ProverResult::True) break;
   }
   output_stream << endl << "Summary: " << endl;
-  output_stream <<  count[ProverResult::True] << " " << 
-    to_string(ProverResult::True) << ", " << count[ProverResult::False] << " "
-    << to_string(ProverResult::False) << ", " << count[ProverResult::Unknown] 
-    << " " << to_string(ProverResult::Unknown) << endl;
+  output_stream << to_string(ProverResult::True) << ": " <<
+    count[ProverResult::True] << ", " << to_string(ProverResult::False) << ": "
+    << count[ProverResult::False] << ", " << to_string(ProverResult::Unknown)
+    << ": " << count[ProverResult::Unknown] << endl;
 
   output_stream << "Overall duration: " << overall_duration << 
   " second" << (overall_duration > 1 ? "s" : "") << endl;
