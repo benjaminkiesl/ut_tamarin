@@ -1,10 +1,9 @@
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <iostream>
-#include <fstream>
 #include <chrono>
-#include <memory>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <csignal>
 #include "third-party/cli11/CLI11.hpp"
 
@@ -16,12 +15,9 @@ using std::cout;
 using std::cerr;
 using std::endl;
 using std::flush;
+using std::ifstream;
 using std::istream;
 using std::ostream;
-using std::ifstream;
-using std::ofstream;
-using std::unique_ptr;
-using std::make_unique;
 
 const string kTempfileName = "/tmp/uttamarintemp.ut";
 
@@ -30,7 +26,6 @@ struct CmdParameters{
   string spthy_file_path;
   string whitelist_path;
   string blacklist_path;
-  string output_path;
   string starting_lemma;
   string penetration_lemma;
   int timeout;
@@ -379,31 +374,33 @@ int penetrateLemma(const CmdParameters& p, ostream& output_stream){
   return 0;
 }
 
-// Holds the name of the tamarin process. This is needed for killing Tamarin 
+// Holds the name of the tamarin process. This name is used for killing Tamarin 
 // when the program receives a SIGINT signal (sent by Ctrl+C).
 string tamarin_process = "tamarin-prover";
 
+void (*default_sigint_handler)(int signal);
+
+// Signal handler for SIGINT signal (sent by Ctrl+C)
+void sigint_handler(int signal)
+{
+  cout << endl;
+  std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
+  std::remove(kTempfileName.c_str());
+  std::signal(signal, default_sigint_handler);
+  std::raise(signal);
+}
+
 // Sets the global 'tamarin_process' name. This is needed for killing Tamarin
 // in case the program receives a SIGINT signal (sent by Ctrl+C).
-void setTamarinProcess(const string& process_name){
+void registerSIGINTHandler(const string& process_name){
   if(process_name.find('/') != string::npos){
     tamarin_process = process_name.substr(process_name.find_last_of('/')+1);
   } else {
     tamarin_process = process_name;
   }
+  default_sigint_handler = std::signal(SIGINT, sigint_handler);
 }
 
-void (*default_signal_handler)(int signal);
-
-// Signal handler for SIGINT signal (sent by Ctrl+C)
-void signal_handler(int signal)
-{
-  cout << endl;
-  std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
-  std::remove(kTempfileName.c_str());
-  std::signal(signal, default_signal_handler);
-  std::raise(signal);
-}
 
 int main (int argc, char *argv[])
 {
@@ -411,7 +408,7 @@ int main (int argc, char *argv[])
 
   CLI::App app{
     "UT Tamarin is a small tool that runs the Tamarin prover on selected\n"
-    "files and lemmas and outputs statistics." 
+    "lemmas and outputs statistics." 
   };
   
   parameters.spthy_file_path = "";
@@ -460,27 +457,15 @@ int main (int argc, char *argv[])
                parameters.continue_after_failure,
                "Tells the tool to continue if Tamarin fails to prove a lemma.");
 
-  parameters.output_path = "";
-  app.add_option("-o,--output_file", parameters.output_path,
-                 "Optional file for output (otherwise standard output is used.")
-                 ->type_name("FILE");
-
   CLI11_PARSE(app, argc, argv);
   
-  setTamarinProcess(parameters.tamarin_path);
-  default_signal_handler = std::signal(SIGINT, signal_handler);
+  registerSIGINTHandler(parameters.tamarin_path);
 
-  unique_ptr<ostream> output_file_stream = parameters.output_path == "" ? 
-    nullptr : make_unique<ofstream>(parameters.output_path, ofstream::out);
-  ostream& output_stream = output_file_stream ? *output_file_stream : cout;
-
-  if(!parameters.generate_lemma_file){ 
-    if(parameters.penetration_lemma != ""){
-      return penetrateLemma(parameters, output_stream);
-    }else {
-      return runTamarinOnLemmas(parameters, output_stream);
-    }
+  if(parameters.generate_lemma_file){
+    return printLemmaNames(parameters, cout);
+  } else if(parameters.penetration_lemma != ""){
+    return penetrateLemma(parameters, cout);
   } else {
-    return printLemmaNames(parameters, output_stream);
+    return runTamarinOnLemmas(parameters, cout);
   }
 }
