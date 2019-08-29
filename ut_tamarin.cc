@@ -79,7 +79,7 @@ int executeShellCommand(const string& cmd){
 
 // Executes Tamarin with the given parameters and writes the needed output
 // to a temp file while relocating the other output to /dev/null. 
-// Returns the path of the resulting temp file.
+// Returns the path to the resulting temp file.
 string runTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
                                     const string& spthy_file_path,
@@ -196,6 +196,10 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
   return 0;
 }
 
+
+// Takes as input a vector of lemmas and the path to a file containing a
+// whitelist of lemmas (one per line) and removes from the vector all lemmas
+// that do not occur on the whitelist.
 vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas, 
                                     const string& whitelist_path){
   auto whitelist = 
@@ -217,6 +221,9 @@ vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
+// Takes as input a vector of lemmas and the path to a file containing a
+// blacklist of lemmas (one per line) and removes from the vector all lemmas
+// occurring on the blacklist.
 vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas, 
                                        const string& blacklist_path){
   auto filtered_lemmas = all_lemmas;
@@ -231,7 +238,10 @@ vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
-
+// Takes as input a vector of lemmas and a lemma name. Removes from the vector
+// all lemmas that occur before the lemma with the given name (in fact, removes
+// all lemmas before the first lemma whose name starts with the starting lemma
+// name).
 vector<string> removeLemmasBeforeStart(const vector<string>& all_lemmas, 
                                        const string& starting_lemma){
   auto it_start = 
@@ -252,7 +262,7 @@ vector<string> removeLemmasBeforeStart(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
-// Takes the path of a Tamarin theory file (".spthy") and a lemma file
+// Takes the path to a Tamarin theory file (".spthy") and a lemma file
 // (i.e., a file with a list of lemma names, one per line) and determines 
 // which lemmas should be verified (namely those that are both in the lemma 
 // file and the Tamarin file). If a lemma name is in the lemma file but not 
