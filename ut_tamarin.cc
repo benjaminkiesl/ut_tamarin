@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <unordered_map>
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -9,11 +10,12 @@
 
 using std::string;
 using std::to_string;
+using std::vector;
+using std::unordered_map;
 using std::cout;
 using std::cerr;
 using std::endl;
 using std::flush;
-using std::vector;
 using std::istream;
 using std::ostream;
 using std::ifstream;
@@ -310,6 +312,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                                               parameters.starting_lemma);
   output_stream << endl;
 
+  unordered_map<ProverResult, int> count;
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
     output_stream << lemma_names[i] << " (" << (i+1) << "/" << 
@@ -319,11 +322,18 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
         lemma_names[i], parameters.timeout);
     output_stream << to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
+    count[stats.result]++;
     if(!parameters.continue_after_failure && 
        stats.result != ProverResult::True) break;
   }
-  output_stream << endl << "Overall duration: " << overall_duration << 
-    " second" << (overall_duration > 1 ? "s" : "") << endl;
+  output_stream << endl << "Summary: " << endl;
+  output_stream <<  count[ProverResult::True] << " " << 
+    to_string(ProverResult::True) << ", " << count[ProverResult::False] << " "
+    << to_string(ProverResult::False) << ", " << count[ProverResult::Unknown] 
+    << " " << to_string(ProverResult::Unknown) << endl;
+
+  output_stream << "Overall duration: " << overall_duration << 
+  " second" << (overall_duration > 1 ? "s" : "") << endl;
 
   return 0;
 }
