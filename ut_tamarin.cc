@@ -23,7 +23,7 @@ using std::ofstream;
 using std::unique_ptr;
 using std::make_unique;
 
-const string kTempfileName = ".utemp";
+const string kTempfileName = "/tmp/uttamarintemp.ut";
 
 struct CmdParameters{
   string tamarin_path;
