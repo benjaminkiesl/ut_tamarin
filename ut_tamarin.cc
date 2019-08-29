@@ -26,9 +26,10 @@ const string kTempfileName = ".utemp";
 struct CmdParameters{
   string tamarin_path;
   string spthy_file_path;
-  string white_list_path;
-  string black_list_path;
+  string whitelist_path;
+  string blacklist_path;
   string output_path;
+  string starting_lemma;
   int timeout;
   bool continue_after_failure;
   bool generate_lemma_file;
@@ -130,20 +131,20 @@ void moveTamarinStreamToLemmaNames(istream& tamarin_stream){
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
 // containing all the names of the lemmas specified in the file.
 vector<string> readLemmaNamesFromSpthyFile(const string& tamarin_path,
-    const string& spthy_file_path){
+                                           const string& spthy_file_path){
   auto temp_file = runTamarinAndWriteOutputToNewTempfile(tamarin_path,
                                                          spthy_file_path);
-  ifstream file_stream {temp_file, ifstream::in};
-  moveTamarinStreamToLemmaNames(file_stream);
-  auto lemma_names = readLemmaNamesFromStream(file_stream);
+  ifstream tamarin_stream {temp_file, ifstream::in};
+  moveTamarinStreamToLemmaNames(tamarin_stream);
+  auto lemma_names = readLemmaNamesFromStream(tamarin_stream);
   std::remove(temp_file.c_str());
   return lemma_names;
 }
 
 // Takes as input a stream of Tamarin output and the name of a lemma and
 // returns the result ("verified", "falsified", "analysis incomplete").
-ProverResult extractResultForLemma(istream& stream_of_tamarin_output,
-                                   const string& lemma_name){
+ProverResult getTamarinResultForLemma(istream& stream_of_tamarin_output,
+                                      const string& lemma_name){
   string line;
   moveTamarinStreamToLemmaNames(stream_of_tamarin_output);
   while(getline(stream_of_tamarin_output, line) 
@@ -180,33 +181,10 @@ TamarinOutput processTamarinLemma(const string& tamarin_path,
   tamarin_output.duration = executeShellCommand(cmd);
 
   ifstream file_stream {kTempfileName, ifstream::in};
-  tamarin_output.result = extractResultForLemma(file_stream, lemma_name);
+  tamarin_output.result = getTamarinResultForLemma(file_stream, lemma_name);
 
   std::remove(kTempfileName.c_str());
   return tamarin_output;
-}
-
-// Takes as input a Tamarin theory file (".spthy"), a list of lemmas, 
-// a timeout, and an output stream and then runs Tamarin on all the 
-// specified lemmas. The timeout is a per-lemma timeout. The results are 
-// written to the given output stream.
-void processTamarinLemmas(const string& tamarin_path,
-                          const string& spthy_file_path,
-                          const vector<string>& lemma_names,
-                          int timeout, bool continue_after_failure, 
-                          ostream& output_stream){
-  int overall_duration = 0;
-  for(int i=0;i < lemma_names.size();i++){
-    output_stream << lemma_names[i] << " (" << (i+1) << "/" << 
-                     lemma_names.size() << ") " << flush;
-    auto stats = processTamarinLemma(tamarin_path, spthy_file_path, 
-        lemma_names[i], timeout);
-    output_stream << to_string(stats, &output_stream == &cout) << endl;
-    overall_duration += stats.duration;
-    if(!continue_after_failure && stats.result != ProverResult::True) break;
-  }
-  output_stream << endl << "Overall duration: " << overall_duration << 
-    " second" << (overall_duration > 1 ? "s" : "") << endl;
 }
 
 // Runs the tool in the mode where a Tamarin theory file (".spthy") is read 
@@ -218,6 +196,62 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
   return 0;
 }
 
+vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas, 
+                                    const string& whitelist_path){
+  auto whitelist = 
+    readLemmaNamesFromLemmaFile(whitelist_path);
+  for(auto lemma_name : whitelist){
+    if(std::find(all_lemmas.begin(), all_lemmas.end(), lemma_name)
+       == all_lemmas.end()){
+      cerr << "Warning: lemma '" << lemma_name << "' is not declared in " <<
+        "the Tamarin theory." << endl;
+    }
+  }
+  auto filtered_lemmas = all_lemmas;
+  filtered_lemmas.erase(
+      std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
+      [&whitelist](const string& lemma_name){
+        return std::find(whitelist.begin(), whitelist.end(), lemma_name) 
+        == whitelist.end();
+      }), filtered_lemmas.end());
+  return filtered_lemmas;
+}
+
+vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas, 
+                                       const string& blacklist_path){
+  auto filtered_lemmas = all_lemmas;
+  auto blacklist = readLemmaNamesFromLemmaFile(blacklist_path);
+  filtered_lemmas.erase(
+      std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
+      [&](const string& lemma_name){ 
+        return std::find(blacklist.begin(), blacklist.end(), lemma_name) 
+               != blacklist.end();
+      }),
+      filtered_lemmas.end());
+  return filtered_lemmas;
+}
+
+
+vector<string> removeLemmasBeforeStart(const vector<string>& all_lemmas, 
+                                       const string& starting_lemma){
+  auto it_start = 
+    std::find_if(all_lemmas.begin(), all_lemmas.end(), 
+        [&starting_lemma](const string& lemma){ 
+          return lemma.size() >= starting_lemma.size() &&
+                 lemma.substr(0, starting_lemma.size()) == starting_lemma;
+        });
+  vector<string> filtered_lemmas;
+  if(it_start != all_lemmas.end()){
+    for(auto it = it_start;it != all_lemmas.end();++it){
+      filtered_lemmas.emplace_back(*it);
+    }
+  } else {
+    cerr << "Warning: No lemma whose name starts with '" << starting_lemma << 
+      "' declared in the Tamarin theory." << endl;
+  }
+  return filtered_lemmas;
+}
+
 // Takes the path of a Tamarin theory file (".spthy") and a lemma file
 // (i.e., a file with a list of lemma names, one per line) and determines 
 // which lemmas should be verified (namely those that are both in the lemma 
@@ -225,45 +259,23 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
 // in the Tamarin file, a warning message is printed.
 vector<string> getNamesOfLemmasToVerify(const string& tamarin_path,
                                         const string& spthy_file_path,
-                                        const string& white_list_path,
-                                        const string& black_list_path){
-  vector<string> lemma_names;
-  auto lemma_names_in_spthy_file = 
-    readLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
-  if(white_list_path != ""){
-    auto white_list = 
-      readLemmaNamesFromLemmaFile(white_list_path);
-    for(auto lemma_name : white_list){
-      if(std::find(lemma_names_in_spthy_file.begin(),
-                   lemma_names_in_spthy_file.end(), lemma_name) ==
-                   lemma_names_in_spthy_file.end()){
-        cerr << "Warning: lemma '" << lemma_name << "' is not declared in " <<
-          "the file '" <<  spthy_file_path << "'." << endl;
-      } else {
-        lemma_names.push_back(lemma_name);
-      }
-    }
-  } else {
-    lemma_names = lemma_names_in_spthy_file;
+                                        const string& whitelist_path = "",
+                                        const string& blacklist_path = "",
+                                        const string& starting_lemma = ""){
+  auto lemmas = readLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
+  if(whitelist_path != ""){
+    lemmas = getLemmasInWhitelist(lemmas, whitelist_path);
   }
-  if(black_list_path != ""){
-    auto black_list = readLemmaNamesFromLemmaFile(black_list_path);
-    std::remove_if(lemma_names.begin(), lemma_names.end(),
-      [&](const string& lemma_name){ 
-        return std::find(black_list.begin(), black_list.end(), lemma_name) 
-               != black_list.end();});
+  if(blacklist_path != ""){
+    lemmas = removeLemmasInBlacklist(lemmas, blacklist_path); 
   }
-  return lemma_names;
+  if(starting_lemma != ""){
+    lemmas = removeLemmasBeforeStart(lemmas, starting_lemma);
+  }
+  return lemmas;
 }
 
-// Runs Tamarin on lemmas. If the parameter 'white_list_path' is not set
-// Tamarin runs on all lemmas specified in the Tamarin theory file at
-// 'spthy_file_path', except for those in the black list. 
-// Otherwise it runs only on the lemmas that are in the white list (unless
-// they are on the black list). Prints statistics either to a file 
-// (if 'output_path' is set) or to the standard output.
-int runTamarinOnLemmas(const CmdParameters& parameters, 
-                       ostream& output_stream){
+void printHeader(const CmdParameters& parameters, ostream& output_stream){
   auto file_name = parameters.spthy_file_path;
   if(file_name.find('/') != string::npos)
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
@@ -273,15 +285,35 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                    (to_string(parameters.timeout) + " second" + 
                    (parameters.timeout > 1 ? "s" : ""))) << " per lemma" 
                     << endl;
+}
+
+// Runs Tamarin on lemmas in the given spthy file. The actual choice
+// of lemmas depends on the command-line parameters.
+int runTamarinOnLemmas(const CmdParameters& parameters, 
+                       ostream& output_stream){
+  printHeader(parameters, output_stream);
 
   auto lemma_names = getNamesOfLemmasToVerify(parameters.tamarin_path,
                                               parameters.spthy_file_path,
-                                              parameters.white_list_path,
-                                              parameters.black_list_path);
+                                              parameters.whitelist_path,
+                                              parameters.blacklist_path,
+                                              parameters.starting_lemma);
   output_stream << endl;
-  processTamarinLemmas(parameters.tamarin_path,
-      parameters.spthy_file_path, lemma_names, parameters.timeout, 
-      parameters.continue_after_failure, output_stream);
+
+  int overall_duration = 0;
+  for(int i=0;i < lemma_names.size();i++){
+    output_stream << lemma_names[i] << " (" << (i+1) << "/" << 
+                     lemma_names.size() << ") " << flush;
+    auto stats = processTamarinLemma(parameters.tamarin_path, 
+        parameters.spthy_file_path, 
+        lemma_names[i], parameters.timeout);
+    output_stream << to_string(stats, &output_stream == &cout) << endl;
+    overall_duration += stats.duration;
+    if(!parameters.continue_after_failure && 
+       stats.result != ProverResult::True) break;
+  }
+  output_stream << endl << "Overall duration: " << overall_duration << 
+    " second" << (overall_duration > 1 ? "s" : "") << endl;
 
   return 0;
 }
@@ -311,20 +343,25 @@ int main (int argc, char *argv[])
                  "Path to a .spthy file containing a Tamarin theory."
                 )->required()->check(CLI::ExistingFile);
 
-  parameters.white_list_path = "";
-  app.add_option("-w,--white_list", parameters.white_list_path,
+  parameters.whitelist_path = "";
+  app.add_option("-w,--whitelist", parameters.whitelist_path,
                  "Path to a file containing the names of the lemmas that "
                  "should be verified (one name per line). If not specified, "
                  "all lemmas are verified."
                 )->check(CLI::ExistingFile);
 
-  parameters.black_list_path = "";
-  app.add_option("-b,--black_list", parameters.black_list_path,
+  parameters.blacklist_path = "";
+  app.add_option("-b,--blacklist", parameters.blacklist_path,
                  "Path to a file containing the names of the lemmas that "
                  "should not be verified (one name per line). If not "
                  "specified, all lemmas are verified. The black list "
                  "overrules the white list."
                 )->check(CLI::ExistingFile);
+
+  parameters.starting_lemma = "";
+  app.add_option("-s,--start", parameters.starting_lemma,
+                 "Name of the first lemma that should be verified."
+                );
 
   parameters.tamarin_path = "tamarin-prover";
   app.add_option("-p,--tamarin_path", parameters.tamarin_path,
