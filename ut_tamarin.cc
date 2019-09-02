@@ -26,6 +26,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
+#include <limits>
 #include <csignal>
 #include "third-party/cli11/CLI11.hpp"
 
@@ -33,6 +35,8 @@ using std::string;
 using std::to_string;
 using std::vector;
 using std::unordered_map;
+using std::min;
+using std::numeric_limits;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -263,18 +267,42 @@ vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
+int editDistanceHelper(const string& A, int a, const string& B, int b,
+    vector<vector<int>>& dp){
+  if(a == A.size()) return B.size() - b;
+  if(b == B.size()) return A.size() - a;
+  if(dp[a][b] == -1){
+    int add = 1 + editDistanceHelper(A, a, B, b+1, dp);
+    int remove = 1 + editDistanceHelper(A, a+1, B, b, dp);
+    int modification_cost = A[a] == B[b] ? 0 : 1;
+    int keep_or_modify = modification_cost + 
+      editDistanceHelper(A, a+1, B, b+1, dp);
+    dp[a][b] = min(add, min(remove, keep_or_modify));
+  }
+  return dp[a][b];
+}
+
+int editDistance(const string& A, const string B){
+  vector<vector<int>> dp(A.size(), vector<int>(B.size(), -1));
+  return editDistanceHelper(A, 0, B, 0, dp);
+}
+
 // Takes as input a vector of lemmas and a lemma name. Removes from the vector
 // all lemmas that occur before the lemma with the given name (in fact, removes
-// all lemmas before the first lemma whose name starts with the starting lemma
-// name).
+// all lemmas before the lemma whose name is closest to 'starting_lemma').
 vector<string> removeLemmasBeforeStart(const vector<string>& all_lemmas, 
                                        const string& starting_lemma){
-  auto it_start = 
-    std::find_if(all_lemmas.begin(), all_lemmas.end(), 
-        [&starting_lemma](const string& lemma){ 
-          return lemma.size() >= starting_lemma.size() &&
-                 lemma.substr(0, starting_lemma.size()) == starting_lemma;
-        });
+  int min_edit_distance = numeric_limits<int>::max();
+  auto it_start = all_lemmas.begin();
+  for(auto it = all_lemmas.begin();it != all_lemmas.end();++it){
+    auto lemma = *it;
+    int edit_distance = editDistance(starting_lemma, lemma);
+    if(edit_distance < min_edit_distance){
+      min_edit_distance = edit_distance; 
+      it_start = it;
+    }
+  }
+
   vector<string> filtered_lemmas;
   if(it_start != all_lemmas.end()){
     for(auto it = it_start;it != all_lemmas.end();++it){
