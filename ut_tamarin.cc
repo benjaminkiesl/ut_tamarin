@@ -28,6 +28,7 @@
 #include <vector>
 #include <algorithm>
 #include <limits>
+#include <future>
 #include <csignal>
 #include "third-party/cli11/CLI11.hpp"
 
@@ -366,12 +367,24 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   unordered_map<ProverResult, int> count;
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
-    output_stream << lemma_names[i] << " (" << (i+1) << "/" << 
-                     lemma_names.size() << ") " << flush;
-    auto stats = processTamarinLemma(parameters.tamarin_path, 
-        parameters.spthy_file_path, 
-        lemma_names[i], parameters.timeout);
-    output_stream << to_string(stats, &output_stream == &cout) << endl;
+    auto line = lemma_names[i] + " (" + to_string(i+1) + "/" + 
+                to_string(lemma_names.size()) + ") ";
+    output_stream << line << flush;
+
+    auto start_time = std::chrono::high_resolution_clock::now();
+    std::future<TamarinOutput> f = std::async(processTamarinLemma, 
+                                              parameters.tamarin_path, 
+                                              parameters.spthy_file_path, 
+                                              lemma_names[i],
+                                              parameters.timeout, "");
+    while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready){
+      auto seconds = std::chrono::duration_cast<std::chrono::seconds>
+                     (std::chrono::high_resolution_clock::now() - start_time).count();
+      cout << "\r" << line << seconds << " " << std::flush;
+    }
+    auto stats = f.get();
+    output_stream << "\r" << line << 
+      to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
     if(!parameters.continue_after_failure && 
