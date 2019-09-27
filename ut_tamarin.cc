@@ -82,14 +82,22 @@ string to_string(const ProverResult& prover_result,
   return result_string;
 }
 
-string durationToString(int duration){
+string durationToString(int seconds){
+  string strMinutes = to_string(seconds / 60);
+  string strSeconds = to_string(seconds % 60);
+  if(strMinutes.size() < 2) strMinutes = "0" + strMinutes;
+  if(strSeconds.size() < 2) strSeconds = "0" + strSeconds;
+  return strMinutes + ":" + strSeconds;
+}
+
+string toSecondsString(int duration){
   return to_string(duration) + " second" + (duration != 1 ? "s" : "");
 }
 
 string to_string(const TamarinOutput& tamarin_output, 
                  bool is_colorized=false) {
   string formatted = to_string(tamarin_output.result, is_colorized);
-  formatted += " (" + durationToString(tamarin_output.duration) + ")";
+  formatted += " (" + toSecondsString(tamarin_output.duration) + ")";
   return formatted;
 }
 
@@ -377,11 +385,12 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                                               parameters.spthy_file_path, 
                                               lemma_names[i],
                                               parameters.timeout, "");
-    while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready){
-      auto seconds = std::chrono::duration_cast<std::chrono::seconds>
-                     (std::chrono::high_resolution_clock::now() - start_time).count();
+    do{
+      auto seconds = durationToString(
+        std::chrono::duration_cast<std::chrono::seconds>(
+           std::chrono::high_resolution_clock::now() - start_time).count());
       cout << "\r" << line << seconds << " " << std::flush;
-    }
+    } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
     auto stats = f.get();
     output_stream << "\r" << line << 
       to_string(stats, &output_stream == &cout) << endl;
@@ -396,7 +405,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
     << count[ProverResult::False] << ", " << to_string(ProverResult::Unknown)
     << ": " << count[ProverResult::Unknown] << endl;
 
-  output_stream << "Overall duration: " << durationToString(overall_duration) 
+  output_stream << "Overall duration: " << toSecondsString(overall_duration) 
    << endl;
 
   return 0;
@@ -422,7 +431,7 @@ int penetrateLemma(const CmdParameters& p, ostream& output_stream){
   string penetration_lemma = *lemma_it;
 
   output_stream << "Penetrating lemma '" << penetration_lemma << 
-    "' with a per-heuristic timeout of " << durationToString(p.timeout) <<
+    "' with a per-heuristic timeout of " << toSecondsString(p.timeout) <<
     "." << endl << endl;
 
   vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
@@ -431,7 +440,7 @@ int penetrateLemma(const CmdParameters& p, ostream& output_stream){
     auto output = processTamarinLemma(p.tamarin_path, p.spthy_file_path, 
         penetration_lemma, p.timeout, "--heuristic=" + heuristic);
     output_stream << to_string(output.result, &output_stream == &cout) 
-      << " (" << durationToString(output.duration) << ")" << endl;
+      << " (" << toSecondsString(output.duration) << ")" << endl;
     if(output.result == ProverResult::True) break; 
   }
   return 0;
