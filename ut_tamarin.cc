@@ -46,18 +46,20 @@ using std::flush;
 using std::ifstream;
 using std::istream;
 using std::ostream;
+using json = nlohmann::json;
 
 const string kTempfileName = "/tmp/uttamarintemp.ut";
 
 struct CmdParameters{
   string tamarin_path;
   string spthy_file_path;
-  string whitelist_path;
-  string blacklist_path;
+  //string whitelist_path;
+  //string blacklist_path;
+  string config_file_path;
   string starting_lemma;
   string penetration_lemma;
   int timeout;
-  bool continue_after_failure;
+  bool abort_after_failure;
   bool generate_lemma_file;
 };
 
@@ -241,9 +243,10 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
 // whitelist of lemmas (one per line) and removes from the vector all lemmas
 // that do not occur on the whitelist.
 vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas, 
-                                    const string& whitelist_path){
-  auto whitelist = 
-    readLemmaNamesFromLemmaFile(whitelist_path);
+                                    const vector<string>& whitelist){
+  //TODO: remove comment
+  //auto whitelist = 
+  //  readLemmaNamesFromLemmaFile(whitelist_path);
   for(auto lemma_name : whitelist){
     if(std::find(all_lemmas.begin(), all_lemmas.end(), lemma_name)
        == all_lemmas.end()){
@@ -265,9 +268,10 @@ vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas,
 // blacklist of lemmas (one per line) and removes from the vector all lemmas
 // occurring on the blacklist.
 vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas, 
-                                       const string& blacklist_path){
+                                       const vector<string>& blacklist){
   auto filtered_lemmas = all_lemmas;
-  auto blacklist = readLemmaNamesFromLemmaFile(blacklist_path);
+  //TODO: remove comment
+  //auto blacklist = readLemmaNamesFromLemmaFile(blacklist_path);
   filtered_lemmas.erase(
       std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
       [&](const string& lemma_name){ 
@@ -333,15 +337,15 @@ vector<string> removeLemmasBeforeStart(const vector<string>& all_lemmas,
 // in the Tamarin file, a warning message is printed.
 vector<string> getNamesOfLemmasToVerify(const string& tamarin_path,
                                         const string& spthy_file_path,
-                                        const string& whitelist_path = "",
-                                        const string& blacklist_path = "",
+                                        const vector<string>& whitelist,
+                                        const vector<string>& blacklist,
                                         const string& starting_lemma = ""){
   auto lemmas = readLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
-  if(whitelist_path != ""){
-    lemmas = getLemmasInWhitelist(lemmas, whitelist_path);
+  if(!whitelist.empty()){
+    lemmas = getLemmasInWhitelist(lemmas, whitelist);
   }
-  if(blacklist_path != ""){
-    lemmas = removeLemmasInBlacklist(lemmas, blacklist_path); 
+  if(!blacklist.empty()){
+    lemmas = removeLemmasInBlacklist(lemmas, blacklist); 
   }
   if(starting_lemma != ""){
     lemmas = removeLemmasBeforeStart(lemmas, starting_lemma);
@@ -367,10 +371,19 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                        ostream& output_stream){
   printHeader(parameters, output_stream);
 
+  json config;
+  config["whitelist"] = vector<string>{};
+  config["blacklist"] = vector<string>{};
+
+  if(parameters.config_file_path != ""){
+    ifstream config_file_stream{parameters.config_file_path};
+    config_file_stream >> config;
+  }
+
   auto lemma_names = getNamesOfLemmasToVerify(parameters.tamarin_path,
                                               parameters.spthy_file_path,
-                                              parameters.whitelist_path,
-                                              parameters.blacklist_path,
+                                              config["whitelist"],
+                                              config["blacklist"],
                                               parameters.starting_lemma);
   output_stream << endl;
 
@@ -398,7 +411,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
       to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
-    if(!parameters.continue_after_failure && 
+    if(parameters.abort_after_failure && 
        stats.result != ProverResult::True) break;
   }
   output_stream << endl << "Summary: " << endl;
@@ -490,14 +503,9 @@ int main (int argc, char *argv[])
                  "Path to a .spthy file containing a Tamarin theory."
                 )->required()->check(CLI::ExistingFile);
 
-  parameters.whitelist_path = "";
-  app.add_option("-w,--whitelist", parameters.whitelist_path,
-                 "Lemma whitelist file (one lemma per line)."
-                )->check(CLI::ExistingFile);
-
-  parameters.blacklist_path = "";
-  app.add_option("-b,--blacklist", parameters.blacklist_path,
-                 "Lemma blacklist file (one lemma per line)."
+  parameters.config_file_path = "";
+  app.add_option("-c,--config_file", parameters.config_file_path,
+                 "Configuration file for UT Tamarin."
                 )->check(CLI::ExistingFile);
 
   parameters.starting_lemma = "";
@@ -526,10 +534,10 @@ int main (int argc, char *argv[])
                  "Per-lemma timeout in seconds "
                  "(0 means no timeout, default: 600 seconds).");
 
-  parameters.continue_after_failure = false;
-  app.add_flag("-c,--continue_after_failure", 
-               parameters.continue_after_failure,
-               "Tells the tool to continue if Tamarin fails to prove a lemma.");
+  parameters.abort_after_failure = true;
+  app.add_flag("-a,--abort_after_failure", 
+               parameters.abort_after_failure,
+               "Tells the tool to abort if Tamarin fails to prove a lemma.");
 
   CLI11_PARSE(app, argc, argv);
   
