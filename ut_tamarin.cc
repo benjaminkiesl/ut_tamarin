@@ -244,9 +244,6 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
 // that do not occur on the whitelist.
 vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas, 
                                     const vector<string>& whitelist){
-  //TODO: remove comment
-  //auto whitelist = 
-  //  readLemmaNamesFromLemmaFile(whitelist_path);
   for(auto lemma_name : whitelist){
     if(std::find(all_lemmas.begin(), all_lemmas.end(), lemma_name)
        == all_lemmas.end()){
@@ -270,8 +267,6 @@ vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas,
 vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas, 
                                        const vector<string>& blacklist){
   auto filtered_lemmas = all_lemmas;
-  //TODO: remove comment
-  //auto blacklist = readLemmaNamesFromLemmaFile(blacklist_path);
   filtered_lemmas.erase(
       std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
       [&](const string& lemma_name){ 
