@@ -31,6 +31,7 @@
 #include <future>
 #include <csignal>
 #include "third-party/cli11/CLI11.hpp"
+#include "third-party/nlohmann/json.hpp"
 
 using std::string;
 using std::to_string;
@@ -209,6 +210,7 @@ TamarinOutput processTamarinLemma(const string& tamarin_path,
                                   const string& spthy_file_path,
                                   const string& lemma_name, int timeout,
                                   const string& tamarin_args=""){
+
   string cmd = "";
   if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
   cmd += tamarin_path + " --prove=" + lemma_name + " " 
