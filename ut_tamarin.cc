@@ -53,8 +53,6 @@ const string kTempfileName = "/tmp/uttamarintemp.ut";
 struct CmdParameters{
   string tamarin_path;
   string spthy_file_path;
-  //string whitelist_path;
-  //string blacklist_path;
   string config_file_path;
   string starting_lemma;
   string penetration_lemma;
@@ -239,9 +237,9 @@ int printLemmaNames(const CmdParameters& parameters, ostream& output_stream){
 }
 
 
-// Takes as input a vector of lemmas and the path to a file containing a
-// whitelist of lemmas (one per line) and removes from the vector all lemmas
-// that do not occur on the whitelist.
+// Takes as input two vectors of lemmas (the initial lemmas and the 
+// "whitelist", respectively) and removes from the initial lemmas all 
+// lemmas that do not occur in the whitelist.
 vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas, 
                                     const vector<string>& whitelist){
   for(auto lemma_name : whitelist){
@@ -261,9 +259,9 @@ vector<string> getLemmasInWhitelist(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
-// Takes as input a vector of lemmas and the path to a file containing a
-// blacklist of lemmas (one per line) and removes from the vector all lemmas
-// occurring on the blacklist.
+// Takes as input two vectors of lemmas (the initial lemmas and the 
+// "blacklist", respectively) and removes from the initial lemmas all 
+// lemmas that occur in the blacklist.
 vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas, 
                                        const vector<string>& blacklist){
   auto filtered_lemmas = all_lemmas;
@@ -367,8 +365,8 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   printHeader(parameters, output_stream);
 
   json config;
-  config["whitelist"] = vector<string>{};
-  config["blacklist"] = vector<string>{};
+  config["lemma_whitelist"] = vector<string>{};
+  config["lemma_blacklist"] = vector<string>{};
 
   if(parameters.config_file_path != ""){
     ifstream config_file_stream{parameters.config_file_path};
@@ -377,8 +375,8 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
 
   auto lemma_names = getNamesOfLemmasToVerify(parameters.tamarin_path,
                                               parameters.spthy_file_path,
-                                              config["whitelist"],
-                                              config["blacklist"],
+                                              config["lemma_whitelist"],
+                                              config["lemma_blacklist"],
                                               parameters.starting_lemma);
   output_stream << endl;
 
