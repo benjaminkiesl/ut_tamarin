@@ -369,7 +369,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   for(int i=0;i < lemma_names.size();i++){
     auto line = lemma_names[i] + " (" + to_string(i+1) + "/" + 
                 to_string(lemma_names.size()) + ") ";
-    output_stream << line << flush;
+    output_stream << line << "  " << flush;
 
     auto start_time = std::chrono::high_resolution_clock::now();
     std::future<TamarinOutput> f = std::async(processTamarinLemma, 
