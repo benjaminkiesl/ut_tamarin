@@ -69,6 +69,16 @@ struct CmdParameters{
 struct FactAnnotations{
   vector<string> important_facts;
   vector<string> unimportant_facts;
+  vector<string> neutral_facts;
+  
+  bool containFact(string fact){
+    return std::find(important_facts.begin(), important_facts.end(), fact) 
+             != important_facts.end() ||
+           std::find(unimportant_facts.begin(), unimportant_facts.end(), fact) 
+             != unimportant_facts.end() ||
+           std::find(neutral_facts.begin(), neutral_facts.end(), fact)
+             != neutral_facts.end();
+  }
 };
 
 struct TamarinConfig{
@@ -388,13 +398,8 @@ string addPrefixViaM4(const string& prefix, const string& original){
 bool factIsAnnotatedLocally(const string& fact, const string& lemma_name, 
                             const TamarinConfig& config){
   if(config.lemma_annotations.count(lemma_name) == 0) return false;
-  auto lemma_annotation = config.lemma_annotations.at(lemma_name);
-  return std::find(lemma_annotation.important_facts.begin(),
-                   lemma_annotation.important_facts.end(),
-                   fact) != lemma_annotation.important_facts.end() ||
-         std::find(lemma_annotation.unimportant_facts.begin(),
-                   lemma_annotation.unimportant_facts.end(),
-                   fact) != lemma_annotation.unimportant_facts.end();
+  auto local_fact_annotations = config.lemma_annotations.at(lemma_name);
+  return local_fact_annotations.containFact(fact);
 }
 
 vector<string> getM4Commands(const string& lemma_name, 
@@ -464,6 +469,10 @@ FactAnnotations getFactAnnotations(json json_annotation){
   if(json_annotation.count("unimportant_facts")){
     fact_annotations.unimportant_facts =
       json_annotation["unimportant_facts"].get<vector<string>>();
+  }
+  if(json_annotation.count("neutral_facts")){
+    fact_annotations.neutral_facts =
+      json_annotation["neutral_facts"].get<vector<string>>();
   }
   return fact_annotations;
 }
