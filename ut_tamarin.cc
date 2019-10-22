@@ -44,11 +44,14 @@ using std::cerr;
 using std::endl;
 using std::flush;
 using std::ifstream;
+using std::ofstream;
 using std::istream;
 using std::ostream;
 using json = nlohmann::json;
 
 const string kTempfileName = "/tmp/uttamarintemp.ut";
+const string kPreprocessedTempfile = "/tmp/preprocessed.spthy";
+const string kM4Tempfile = "/tmp/temp.m4";
 
 struct CmdParameters{
   string tamarin_path;
@@ -369,6 +372,32 @@ void printHeader(const CmdParameters& parameters, ostream& output_stream){
                     << endl;
 }
 
+string applyCustomHeuristics(string spthy_file_path, 
+                             const vector<string>& important_facts,
+                             const vector<string>& unimportant_facts){
+  ofstream tempfile_m4{kM4Tempfile};
+
+  for(auto fact : important_facts){
+    tempfile_m4 << 
+      "define(" << fact << ", " << "F_" << fact << "($*))" << endl;
+  }
+
+  for(auto fact : unimportant_facts){
+    tempfile_m4 << 
+      "define(" << fact << ", " << "L_" << fact << "($*))" << endl;
+  }
+
+  ifstream spthy_file{spthy_file_path};
+  string line = "";
+  while(std::getline(spthy_file, line)){
+    tempfile_m4 << line << endl;
+  }
+
+  executeShellCommand("m4 " + kM4Tempfile + " > " + kPreprocessedTempfile);
+
+  return kPreprocessedTempfile;
+}
+
 TamarinConfig getTamarinConfig(const string& config_file_path){
   TamarinConfig tamarin_config;
   json json_config;
@@ -421,6 +450,11 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                 to_string(lemma_names.size()) + ") ";
     output_stream << line << "  " << flush;
 
+    auto preprocessed_spthy_file = 
+      applyCustomHeuristics(parameters.spthy_file_path, 
+          config.lemma_annotations[lemma_names[i]].important_facts,
+          config.lemma_annotations[lemma_names[i]].unimportant_facts);
+
     auto start_time = std::chrono::high_resolution_clock::now();
     std::future<TamarinOutput> f = std::async(processTamarinLemma, 
                                               parameters.tamarin_path, 
@@ -438,6 +472,8 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
       to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
+    exit(0);
+    std::remove(kTempfileName.c_str());
     if(parameters.abort_after_failure && 
        stats.result != ProverResult::True) break;
   }
