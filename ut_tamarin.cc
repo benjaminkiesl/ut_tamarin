@@ -61,6 +61,17 @@ struct CmdParameters{
   bool generate_lemma_file;
 };
 
+struct LemmaAnnotation{
+  vector<string> important_facts;
+  vector<string> unimportant_facts;
+};
+
+struct TamarinConfig{
+  vector<string> lemma_blacklist;
+  vector<string> lemma_whitelist;
+  unordered_map<string, LemmaAnnotation> lemma_annotations;
+};
+
 enum class ProverResult {True, False, Unknown};
 
 struct TamarinOutput{
@@ -358,25 +369,48 @@ void printHeader(const CmdParameters& parameters, ostream& output_stream){
                     << endl;
 }
 
+TamarinConfig getTamarinConfig(const string& config_file_path){
+  TamarinConfig tamarin_config;
+  json json_config;
+
+  if(config_file_path != ""){
+    ifstream config_file_stream{config_file_path};
+    config_file_stream >> json_config;
+  }
+
+  tamarin_config.lemma_blacklist = json_config.count("lemma_blacklist") ?
+    json_config["lemma_blacklist"].get<vector<string>>() : vector<string>{};
+
+  tamarin_config.lemma_whitelist = json_config.count("lemma_whitelist") ?
+    json_config["lemma_whitelist"].get<vector<string>>() : vector<string>{};
+
+  for(auto lemma_annotation : json_config["lemma_annotations"]){
+    string lemma_name = lemma_annotation["name"].get<string>();
+    if(lemma_annotation.count("important_facts")){
+      tamarin_config.lemma_annotations[lemma_name].important_facts =
+        lemma_annotation["important_facts"].get<vector<string>>();
+    }
+    if(lemma_annotation.count("unimportant_facts")){
+      tamarin_config.lemma_annotations[lemma_name].unimportant_facts =
+        lemma_annotation["unimportant_facts"].get<vector<string>>();
+    }
+  }
+
+  return tamarin_config;
+}
+
 // Runs Tamarin on lemmas in the given spthy file. The actual choice
 // of lemmas depends on the command-line parameters.
 int runTamarinOnLemmas(const CmdParameters& parameters, 
                        ostream& output_stream){
   printHeader(parameters, output_stream);
 
-  json config;
-  config["lemma_whitelist"] = vector<string>{};
-  config["lemma_blacklist"] = vector<string>{};
-
-  if(parameters.config_file_path != ""){
-    ifstream config_file_stream{parameters.config_file_path};
-    config_file_stream >> config;
-  }
+  auto config = getTamarinConfig(parameters.config_file_path);
 
   auto lemma_names = getNamesOfLemmasToVerify(parameters.tamarin_path,
                                               parameters.spthy_file_path,
-                                              config["lemma_whitelist"],
-                                              config["lemma_blacklist"],
+                                              config.lemma_whitelist,
+                                              config.lemma_blacklist,
                                               parameters.starting_lemma);
   output_stream << endl;
 
