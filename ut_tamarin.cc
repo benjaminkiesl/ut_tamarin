@@ -472,7 +472,6 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
       to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
-    exit(0);
     std::remove(kTempfileName.c_str());
     if(parameters.abort_after_failure && 
        stats.result != ProverResult::True) break;
