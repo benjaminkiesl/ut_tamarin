@@ -62,6 +62,7 @@ struct CmdParameters{
   int timeout;
   bool abort_after_failure;
   bool generate_lemma_file;
+  bool verbose;
 };
 
 struct FactAnnotations{
@@ -218,20 +219,21 @@ void writeLemmaNames(const vector<string>& lemma_names,
   }
 }
 
-// Takes as input a Tamarin theory file (".spthy"), the name of a lemma,
-// and a timeout, and then runs Tamarin on the given lemma. Returns some
+// Takes as input a  lemma name, the command line parameters, and dedicated
+// arguments for Tamarin and then runs Tamarin on the given lemma. Returns some
 // output/statistics (like Tamarin's result and the execution duration).
-TamarinOutput processTamarinLemma(const string& tamarin_path,
-                                  const string& spthy_file_path,
-                                  const string& lemma_name, int timeout,
+TamarinOutput processTamarinLemma(const string& lemma_name,
+                                  const CmdParameters& parameters,
                                   const string& tamarin_args=""){
 
   string cmd = "";
-  if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
-  cmd += tamarin_path + " --prove=" + lemma_name + " " 
-       + tamarin_args + " " + spthy_file_path 
+  if(parameters.timeout > 0) 
+    cmd += "timeout " + to_string(parameters.timeout) + " ";
+  
+  cmd += parameters.tamarin_path + " --prove=" + lemma_name + " " 
+       + tamarin_args + " " + parameters.spthy_file_path 
        + " 1> " + kTempfilePath + " 2> /dev/null";
-
+  
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
 
@@ -389,32 +391,51 @@ bool factIsAnnotatedLocally(const string& fact, const string& lemma_name,
                    fact) != lemma_annotation.unimportant_facts.end();
 }
 
-string applyCustomHeuristics(const string& spthy_file_path, 
-                             const string& lemma_name,
+vector<string> getM4Commands(const string& lemma_name, 
                              const TamarinConfig& config){
   const string important_prefix = "F_";
   const string unimportant_prefix = "L_";
 
-  ofstream tempfile_m4{kM4TempfilePath};
+  vector<string> m4_commands;
 
   for(string fact : config.global_annotations.important_facts){
     if(!factIsAnnotatedLocally(fact, lemma_name, config)){
-      tempfile_m4 << addPrefixViaM4(important_prefix, fact) << endl;
+      m4_commands.emplace_back(addPrefixViaM4(important_prefix, fact));
     }
   }
 
   for(string fact : config.global_annotations.unimportant_facts){
     if(!factIsAnnotatedLocally(fact, lemma_name, config)){
-      tempfile_m4 << addPrefixViaM4(unimportant_prefix, fact) << endl;
+      m4_commands.emplace_back(addPrefixViaM4(unimportant_prefix, fact));
     }
   }
 
   if(config.lemma_annotations.count(lemma_name)){
     for(string fact : config.lemma_annotations.at(lemma_name).important_facts)
-      tempfile_m4 << addPrefixViaM4(important_prefix, fact) << endl;
+      m4_commands.emplace_back(addPrefixViaM4(important_prefix, fact));
 
     for(string fact : config.lemma_annotations.at(lemma_name).unimportant_facts)
-      tempfile_m4 << addPrefixViaM4(unimportant_prefix, fact) << endl;
+      m4_commands.emplace_back(addPrefixViaM4(unimportant_prefix, fact));
+  }
+
+  return m4_commands;
+}
+
+string applyCustomHeuristics(const string& spthy_file_path, 
+                             const string& lemma_name,
+                             const TamarinConfig& config,
+                             const CmdParameters& cmd_parameters){
+  auto m4_commands = getM4Commands(lemma_name, config);
+
+  ofstream tempfile_m4{kM4TempfilePath};
+
+  if(cmd_parameters.verbose && !m4_commands.empty())
+    cout << "Fact Annotations for " << lemma_name << ": " << endl;
+
+  for(auto m4_command : m4_commands){
+    tempfile_m4 << m4_command << endl;
+    if(cmd_parameters.verbose)
+      cout << m4_command << endl;
   }
 
   ifstream spthy_file{spthy_file_path};
@@ -488,19 +509,18 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   unordered_map<ProverResult, int> count;
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++){
+    auto preprocessed_spthy_file = applyCustomHeuristics(
+                        parameters.spthy_file_path, lemma_names[i], 
+                        config, parameters);
+
     auto line = lemma_names[i] + " (" + to_string(i+1) + "/" + 
                 to_string(lemma_names.size()) + ") ";
     output_stream << line << "  " << flush;
 
-    auto preprocessed_spthy_file = applyCustomHeuristics(
-                        parameters.spthy_file_path, lemma_names[i], config);
-
     auto start_time = std::chrono::high_resolution_clock::now();
     std::future<TamarinOutput> f = std::async(processTamarinLemma, 
-                                              parameters.tamarin_path, 
-                                              parameters.spthy_file_path, 
                                               lemma_names[i],
-                                              parameters.timeout, "");
+                                              parameters, "");
     do{
       auto seconds = durationToString(
         std::chrono::duration_cast<std::chrono::seconds>(
@@ -554,8 +574,8 @@ int penetrateLemma(const CmdParameters& p, ostream& output_stream){
   vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
   for(auto heuristic : heuristics){
     output_stream << "Heuristic: " << heuristic << " " << flush;
-    auto output = processTamarinLemma(p.tamarin_path, p.spthy_file_path, 
-        penetration_lemma, p.timeout, "--heuristic=" + heuristic);
+    auto output = processTamarinLemma(penetration_lemma, p,
+                                      "--heuristic=" + heuristic);
     output_stream << to_string(output.result, &output_stream == &cout) 
       << " (" << toSecondsString(output.duration) << ")" << endl;
     if(output.result == ProverResult::True) break; 
@@ -640,6 +660,12 @@ int main (int argc, char *argv[])
   app.add_flag("-a,--abort_after_failure", 
                parameters.abort_after_failure,
                "Tells the tool to abort if Tamarin fails to prove a lemma.");
+
+  parameters.verbose = false;
+
+  app.add_flag("-v,--verbose", 
+               parameters.verbose,
+               "Tells the tool to output debug information.");
 
   CLI11_PARSE(app, argc, argv);
   
