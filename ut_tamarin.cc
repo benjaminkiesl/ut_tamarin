@@ -41,6 +41,7 @@ using std::min;
 using std::numeric_limits;
 using std::cout;
 using std::cerr;
+using std::clog;
 using std::endl;
 using std::flush;
 using std::ifstream;
@@ -223,6 +224,7 @@ void writeLemmaNames(const vector<string>& lemma_names,
 // arguments for Tamarin and then runs Tamarin on the given lemma. Returns some
 // output/statistics (like Tamarin's result and the execution duration).
 TamarinOutput processTamarinLemma(const string& lemma_name,
+                                  const string& spthy_file_path,
                                   const CmdParameters& parameters,
                                   const string& tamarin_args=""){
 
@@ -231,8 +233,12 @@ TamarinOutput processTamarinLemma(const string& lemma_name,
     cmd += "timeout " + to_string(parameters.timeout) + " ";
   
   cmd += parameters.tamarin_path + " --prove=" + lemma_name + " " 
-       + tamarin_args + " " + parameters.spthy_file_path 
+       + tamarin_args + " " + spthy_file_path 
        + " 1> " + kTempfilePath + " 2> /dev/null";
+
+  if(parameters.verbose){
+    clog << endl << "Calling Tamarin: " << cmd << endl;
+  }
   
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
@@ -430,12 +436,12 @@ string applyCustomHeuristics(const string& spthy_file_path,
   ofstream tempfile_m4{kM4TempfilePath};
 
   if(cmd_parameters.verbose && !m4_commands.empty())
-    cout << "Fact Annotations for " << lemma_name << ": " << endl;
+    clog << "Fact Annotations for " << lemma_name << ": " << endl;
 
   for(auto m4_command : m4_commands){
     tempfile_m4 << m4_command << endl;
     if(cmd_parameters.verbose)
-      cout << m4_command << endl;
+      clog << m4_command << endl;
   }
 
   ifstream spthy_file{spthy_file_path};
@@ -520,6 +526,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
     auto start_time = std::chrono::high_resolution_clock::now();
     std::future<TamarinOutput> f = std::async(processTamarinLemma, 
                                               lemma_names[i],
+                                              preprocessed_spthy_file,
                                               parameters, "");
     do{
       auto seconds = durationToString(
@@ -574,7 +581,7 @@ int penetrateLemma(const CmdParameters& p, ostream& output_stream){
   vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
   for(auto heuristic : heuristics){
     output_stream << "Heuristic: " << heuristic << " " << flush;
-    auto output = processTamarinLemma(penetration_lemma, p,
+    auto output = processTamarinLemma(penetration_lemma, p.tamarin_path, p,
                                       "--heuristic=" + heuristic);
     output_stream << to_string(output.result, &output_stream == &cout) 
       << " (" << toSecondsString(output.duration) << ")" << endl;
