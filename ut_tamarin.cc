@@ -49,9 +49,9 @@ using std::istream;
 using std::ostream;
 using json = nlohmann::json;
 
-const string kTempfileName = "/tmp/uttamarintemp.ut";
-const string kPreprocessedTempfile = "/tmp/preprocessed.spthy";
-const string kM4Tempfile = "/tmp/temp.m4";
+const string kTempfilePath = "/tmp/uttamarintemp.ut";
+const string kPreprocessedTempfilePath = "/tmp/preprocessed.spthy";
+const string kM4TempfilePath = "/tmp/temp.m4";
 
 struct CmdParameters{
   string tamarin_path;
@@ -64,7 +64,7 @@ struct CmdParameters{
   bool generate_lemma_file;
 };
 
-struct LemmaAnnotation{
+struct FactAnnotations{
   vector<string> important_facts;
   vector<string> unimportant_facts;
 };
@@ -72,7 +72,8 @@ struct LemmaAnnotation{
 struct TamarinConfig{
   vector<string> lemma_blacklist;
   vector<string> lemma_whitelist;
-  unordered_map<string, LemmaAnnotation> lemma_annotations;
+  FactAnnotations global_annotations;
+  unordered_map<string, FactAnnotations> lemma_annotations;
 };
 
 enum class ProverResult {True, False, Unknown};
@@ -136,8 +137,8 @@ string runTamarinAndWriteOutputToNewTempfile(
                                     const string& spthy_file_path,
                                     const string& tamarin_parameters=""){
   executeShellCommand(tamarin_path + " " + tamarin_parameters + 
-       spthy_file_path + " 1> " + kTempfileName + " 2> /dev/null");
-  return kTempfileName;
+       spthy_file_path + " 1> " + kTempfilePath + " 2> /dev/null");
+  return kTempfilePath;
 }
 
 // Trims white space from the left of the given string.
@@ -229,15 +230,15 @@ TamarinOutput processTamarinLemma(const string& tamarin_path,
   if(timeout > 0) cmd += "timeout " + to_string(timeout) + " ";
   cmd += tamarin_path + " --prove=" + lemma_name + " " 
        + tamarin_args + " " + spthy_file_path 
-       + " 1> " + kTempfileName + " 2> /dev/null";
+       + " 1> " + kTempfilePath + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
 
-  ifstream file_stream {kTempfileName, ifstream::in};
+  ifstream file_stream {kTempfilePath, ifstream::in};
   tamarin_output.result = getTamarinResultForLemma(file_stream, lemma_name);
 
-  std::remove(kTempfileName.c_str());
+  std::remove(kTempfilePath.c_str());
   return tamarin_output;
 }
 
@@ -372,30 +373,72 @@ void printHeader(const CmdParameters& parameters, ostream& output_stream){
                     << endl;
 }
 
-string applyCustomHeuristics(string spthy_file_path, 
-                             const vector<string>& important_facts,
-                             const vector<string>& unimportant_facts){
-  ofstream tempfile_m4{kM4Tempfile};
+string addPrefixViaM4(const string& prefix, const string& original){
+  return "define(" + original + ", " + prefix + original + "($*))";
+}
 
-  for(auto fact : important_facts){
-    tempfile_m4 << 
-      "define(" << fact << ", " << "F_" << fact << "($*))" << endl;
+bool factIsAnnotatedLocally(const string& fact, const string& lemma_name, 
+                            const TamarinConfig& config){
+  if(config.lemma_annotations.count(lemma_name) == 0) return false;
+  auto lemma_annotation = config.lemma_annotations.at(lemma_name);
+  return std::find(lemma_annotation.important_facts.begin(),
+                   lemma_annotation.important_facts.end(),
+                   fact) != lemma_annotation.important_facts.end() ||
+         std::find(lemma_annotation.unimportant_facts.begin(),
+                   lemma_annotation.unimportant_facts.end(),
+                   fact) != lemma_annotation.unimportant_facts.end();
+}
+
+string applyCustomHeuristics(const string& spthy_file_path, 
+                             const string& lemma_name,
+                             const TamarinConfig& config){
+  const string important_prefix = "F_";
+  const string unimportant_prefix = "L_";
+
+  ofstream tempfile_m4{kM4TempfilePath};
+
+  for(string fact : config.global_annotations.important_facts){
+    if(!factIsAnnotatedLocally(fact, lemma_name, config)){
+      tempfile_m4 << addPrefixViaM4(important_prefix, fact) << endl;
+    }
   }
 
-  for(auto fact : unimportant_facts){
-    tempfile_m4 << 
-      "define(" << fact << ", " << "L_" << fact << "($*))" << endl;
+  for(string fact : config.global_annotations.unimportant_facts){
+    if(!factIsAnnotatedLocally(fact, lemma_name, config)){
+      tempfile_m4 << addPrefixViaM4(unimportant_prefix, fact) << endl;
+    }
+  }
+
+  if(config.lemma_annotations.count(lemma_name)){
+    for(string fact : config.lemma_annotations.at(lemma_name).important_facts)
+      tempfile_m4 << addPrefixViaM4(important_prefix, fact) << endl;
+
+    for(string fact : config.lemma_annotations.at(lemma_name).unimportant_facts)
+      tempfile_m4 << addPrefixViaM4(unimportant_prefix, fact) << endl;
   }
 
   ifstream spthy_file{spthy_file_path};
-  string line = "";
-  while(std::getline(spthy_file, line)){
-    tempfile_m4 << line << endl;
+  string spthy_file_line = "";
+  while(std::getline(spthy_file, spthy_file_line)) 
+    tempfile_m4 << spthy_file_line << endl;
+
+  executeShellCommand("m4 " + kM4TempfilePath + " > " + 
+                      kPreprocessedTempfilePath);
+
+  return kPreprocessedTempfilePath;
+}
+
+FactAnnotations getFactAnnotations(json json_annotation){
+  FactAnnotations fact_annotations;
+  if(json_annotation.count("important_facts")){
+    fact_annotations.important_facts =
+      json_annotation["important_facts"].get<vector<string>>();
   }
-
-  executeShellCommand("m4 " + kM4Tempfile + " > " + kPreprocessedTempfile);
-
-  return kPreprocessedTempfile;
+  if(json_annotation.count("unimportant_facts")){
+    fact_annotations.unimportant_facts =
+      json_annotation["unimportant_facts"].get<vector<string>>();
+  }
+  return fact_annotations;
 }
 
 TamarinConfig getTamarinConfig(const string& config_file_path){
@@ -413,16 +456,15 @@ TamarinConfig getTamarinConfig(const string& config_file_path){
   tamarin_config.lemma_whitelist = json_config.count("lemma_whitelist") ?
     json_config["lemma_whitelist"].get<vector<string>>() : vector<string>{};
 
+  if(json_config.count("global_annotations")){
+    tamarin_config.global_annotations = 
+      getFactAnnotations(json_config["global_annotations"]);
+  } 
+
   for(auto lemma_annotation : json_config["lemma_annotations"]){
-    string lemma_name = lemma_annotation["name"].get<string>();
-    if(lemma_annotation.count("important_facts")){
-      tamarin_config.lemma_annotations[lemma_name].important_facts =
-        lemma_annotation["important_facts"].get<vector<string>>();
-    }
-    if(lemma_annotation.count("unimportant_facts")){
-      tamarin_config.lemma_annotations[lemma_name].unimportant_facts =
-        lemma_annotation["unimportant_facts"].get<vector<string>>();
-    }
+    auto lemma_name = lemma_annotation["lemma_name"].get<string>();
+    tamarin_config.lemma_annotations[lemma_name] = 
+      getFactAnnotations(lemma_annotation);
   }
 
   return tamarin_config;
@@ -450,10 +492,8 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                 to_string(lemma_names.size()) + ") ";
     output_stream << line << "  " << flush;
 
-    auto preprocessed_spthy_file = 
-      applyCustomHeuristics(parameters.spthy_file_path, 
-          config.lemma_annotations[lemma_names[i]].important_facts,
-          config.lemma_annotations[lemma_names[i]].unimportant_facts);
+    auto preprocessed_spthy_file = applyCustomHeuristics(
+                        parameters.spthy_file_path, lemma_names[i], config);
 
     auto start_time = std::chrono::high_resolution_clock::now();
     std::future<TamarinOutput> f = std::async(processTamarinLemma, 
@@ -472,7 +512,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
       to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
-    std::remove(kTempfileName.c_str());
+    std::remove(kTempfilePath.c_str());
     if(parameters.abort_after_failure && 
        stats.result != ProverResult::True) break;
   }
@@ -534,7 +574,7 @@ void sigint_handler(int signal)
 {
   cout << endl;
   std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
-  std::remove(kTempfileName.c_str());
+  std::remove(kTempfilePath.c_str());
   std::signal(signal, default_sigint_handler);
   std::raise(signal);
 }
