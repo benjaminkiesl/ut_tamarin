@@ -72,3 +72,8 @@ The following is a sample JSON config for UT Tamarin that should be self-explana
 	]
 }
 ```
+
+## Built With
+
+* [CLI11](https://github.com/CLIUtils/CLI11) - Command line parser for C++11.
+* [JSON for Modern C++](https://github.com/nlohmann/json) - An excellent JSON library for C++.
