@@ -95,6 +95,8 @@ struct TamarinOutput{
   int duration; // in seconds
 };
 
+// Converts a given ProverResult to a string. If the parameter 'is_colorized'
+// is true, then the string is colored using color code for the bash
 string to_string(const ProverResult& prover_result,
                  bool is_colorized=false) {
   string result_string;
@@ -110,6 +112,8 @@ string to_string(const ProverResult& prover_result,
   return result_string;
 }
 
+// Takes a duration in seconds and converts it into a string
+// of the form MM:SS
 string durationToString(int seconds){
   string strMinutes = to_string(seconds / 60);
   string strSeconds = to_string(seconds % 60);
@@ -118,10 +122,13 @@ string durationToString(int seconds){
   return strMinutes + ":" + strSeconds;
 }
 
+// Takes a duration in seconds and converts it into a string saying
+// "duration seconds"
 string toSecondsString(int duration){
   return to_string(duration) + " second" + (duration != 1 ? "s" : "");
 }
 
+// 
 string to_string(const TamarinOutput& tamarin_output, 
                  bool is_colorized=false) {
   string formatted = to_string(tamarin_output.result, is_colorized);
@@ -308,6 +315,9 @@ vector<string> removeLemmasInBlacklist(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
+// Computes the edit distance between the substring of A starting at a
+// and the substring of B starting at b. The parameter 'dp' is used for
+// memoization.
 int editDistanceHelper(const string& A, int a, const string& B, int b,
     vector<vector<int>>& dp){
   if(a == A.size()) return B.size() - b;
@@ -323,6 +333,7 @@ int editDistanceHelper(const string& A, int a, const string& B, int b,
   return dp[a][b];
 }
 
+// Computes the edit distance between two strings A and B
 int editDistance(const string& A, const string B){
   vector<vector<int>> dp(A.size(), vector<int>(B.size(), -1));
   return editDistanceHelper(A, 0, B, 0, dp);
@@ -379,6 +390,8 @@ vector<string> getNamesOfLemmasToVerify(const string& tamarin_path,
   return lemmas;
 }
 
+// Prints the header for the Tamarin output based on the given command line
+// parameters. The header is printed to the given ostream output_stream.
 void printHeader(const CmdParameters& parameters, ostream& output_stream){
   auto file_name = parameters.spthy_file_path;
   if(file_name.find('/') != string::npos)
@@ -391,10 +404,16 @@ void printHeader(const CmdParameters& parameters, ostream& output_stream){
                     << endl;
 }
 
+// Takes a string 'prefix' and a string 'original' and returns a command
+// that tells the tool M4 to prepend 'prefix' to 'original'
 string addPrefixViaM4(const string& prefix, const string& original){
   return "define(" + original + ", " + prefix + original + "($*))";
 }
 
+// Returns true if the given fact 'fact' is annotaed locally for the given
+// lemma 'lemma_name' under the given config. Here, a local annotation means
+// that the scope of the annotation is only the lemma itself and not the whole
+// Tamarin theory file.
 bool factIsAnnotatedLocally(const string& fact, const string& lemma_name, 
                             const TamarinConfig& config){
   if(config.lemma_annotations.count(lemma_name) == 0) return false;
@@ -402,6 +421,10 @@ bool factIsAnnotatedLocally(const string& fact, const string& lemma_name,
   return local_fact_annotations.containFact(fact);
 }
 
+// Takes as input the name of a lemma and a tamarin configuration and returns
+// a list of commands for the tool M4. This commands tell M4 to rename certain
+// fact symbols within the Tamarin theory file in order to apply custom 
+// heuristics
 vector<string> getM4Commands(const string& lemma_name, 
                              const TamarinConfig& config){
   const string important_prefix = "F_";
@@ -432,6 +455,10 @@ vector<string> getM4Commands(const string& lemma_name,
   return m4_commands;
 }
 
+// Takes as input a Tamarin theory file and a lemma name and applies the
+// custom heuristics defined in the Tamarin config. Returns the path of
+// the temp file created by applying the custom heuristics to the Tamarin
+// theory file.
 string applyCustomHeuristics(const string& spthy_file_path, 
                              const string& lemma_name,
                              const TamarinConfig& config,
@@ -460,6 +487,7 @@ string applyCustomHeuristics(const string& spthy_file_path,
   return kPreprocessedTempfilePath;
 }
 
+// Gets the fact annotations from a JSON annotation.
 FactAnnotations getFactAnnotations(json json_annotation){
   FactAnnotations fact_annotations;
   if(json_annotation.count("important_facts")){
@@ -477,6 +505,8 @@ FactAnnotations getFactAnnotations(json json_annotation){
   return fact_annotations;
 }
 
+// Takes as input the path of the Tamarin config file and returns an object
+// representing the configuration options deifned in the config file.
 TamarinConfig getTamarinConfig(const string& config_file_path){
   TamarinConfig tamarin_config;
   json json_config;

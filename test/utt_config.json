@@ -1,0 +1,26 @@
+{
+	"lemma_blacklist": [ 
+		"black_listed_lemma"	
+	],
+	"lemma_whitelist": [],
+	"global_annotations": {
+		"important_facts": ["OtherFact"],
+		"unimportant_facts": ["SomeUnimportantFact"],
+		"neutral_facts": []
+	},
+	"lemma_annotations": [
+		{	
+			"lemma_name": "some_statement",
+			"important_facts": [],
+			"unimportant_facts": ["SomeFact"],
+			"neutral_facts": ["OtherFact"]
+		},
+		{	
+			"lemma_name": "other_statement",
+			"important_facts": [],
+			"unimportant_facts": ["SomeFact"],
+			"neutral_facts": []
+		}
+	]
+}
+
