@@ -51,7 +51,8 @@ The following is a sample JSON config for UT Tamarin that should be self-explana
 ```
 {
 	"lemma_blacklist": [ 
-		"black_listed_lemma"	
+		"frist_black_listed_lemma",
+		"second_black_listed_lemma"
 	],
 	"lemma_whitelist": [],
 	"global_annotations": {
