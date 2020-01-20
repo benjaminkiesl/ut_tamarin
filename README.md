@@ -41,10 +41,10 @@ Finally, make sure you have write access to the directory from which you call ut
 
 UT Tamarin allows you to specify configuration options via a JSON file that you then pass to UT Tamarin is explained above. Such a JSON file can contain:
 
-	* A white list of lemmas: If you specify a white list, then only those lemmas from the Tamarin theory file are proved that are also in the white list. 
-	* A black list of lemmas: If you specify a blacklist, then all lemmas from the blacklist are ignored when running UT Tamarin.
-	* Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. Higher priority is achieved by adding the prefix `F_` to a fact symbol, lower priority is achieved by adding `L_`.
-	* Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local facts can be declared as "neutral" (in case they have a high or low priority in the global fact annotations).
+* A white list of lemmas: If you specify a white list, then only those lemmas from the Tamarin theory file are proved that are also in the white list. 
+* A black list of lemmas: If you specify a blacklist, then all lemmas from the blacklist are ignored when running UT Tamarin.
+* Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. Higher priority is achieved by adding the prefix `F_` to a fact symbol, lower priority is achieved by adding `L_`.
+* Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local facts can be declared as "neutral" (in case they have a high or low priority in the global fact annotations).
 
 The following is a sample JSON config file for UT Tamarin that should be self-explanatory:
 
