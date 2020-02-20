@@ -18,14 +18,32 @@ rule Loop:
 
 // BEGIN Statements
 
-lemma true_statement:
+lemma first_true_statement:
     "All X #i. K(X) @ i ==> K(X) @ i"
 
-lemma false_statement:
+lemma first_false_statement:
     "All X #i. K(X) @ i ==> not K(X) @ i"
 
 lemma non_terminating_statement:
     "All X #i. Loop(X) @ i ==> Ex #j. j < i & Start(X) @ j"
+
+lemma second_true_statement:
+    "All X #i. K(X) @ i ==> K(X) @ i"
+
+lemma third_true_statement:
+    "All X #i. K(X) @ i ==> K(X) @ i"
+
+lemma second_false_statement:
+    "All X #i. K(X) @ i ==> not K(X) @ i"
+
+lemma third_false_statement:
+    "All X #i. K(X) @ i ==> not K(X) @ i"
+
+lemma fourth_true_statement:
+    "All X #i. K(X) @ i ==> K(X) @ i"
+
+lemma fifth_true_statement:
+    "All X #i. K(X) @ i ==> K(X) @ i"
 
 // END Statements
 

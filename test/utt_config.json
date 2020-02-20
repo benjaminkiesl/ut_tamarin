@@ -1,0 +1,21 @@
+{
+	"lemma_blacklist": [ 
+		"black_listed_lemma"	
+	],
+	"lemma_whitelist": [],
+	"global_annotations": {
+		"important_facts": ["NewFact", "OtherFact"],
+		"unimportant_facts": ["SomeUnimportantFact"],
+		"neutral_facts": []
+	},
+	"lemma_annotations": [
+		{	
+			"lemma_name": "some_statement",
+			"neutral_facts": ["OtherFact"]
+		},
+		{	
+			"lemma_name": "other_statement",
+			"unimportant_facts": ["AFact", "BFact"]
+		}
+	]
+}
