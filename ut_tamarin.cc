@@ -60,6 +60,7 @@ struct CmdParameters{
   string config_file_path;
   string starting_lemma;
   string penetration_lemma;
+  string proof_directory;
   int timeout;
   bool abort_after_failure;
   bool generate_lemma_file;
@@ -236,19 +237,22 @@ void writeLemmaNames(const vector<string>& lemma_names,
 TamarinOutput processTamarinLemma(const string& lemma_name,
                                   const string& spthy_file_path,
                                   const CmdParameters& parameters,
-                                  const string& tamarin_args=""){
+                                  string tamarin_args=""){
 
   string cmd = "";
   if(parameters.timeout > 0) 
     cmd += "timeout " + to_string(parameters.timeout) + " ";
+
+  if(parameters.proof_directory != ""){
+    tamarin_args += " --output=" + parameters.proof_directory + "/" + 
+                    lemma_name + ".spthy";
+  }
   
   cmd += parameters.tamarin_path + " --prove=" + lemma_name + " " 
        + tamarin_args + " " + spthy_file_path 
        + " 1> " + kTempfilePath + " 2> /dev/null";
 
-  if(parameters.verbose){
-    clog << endl << "Calling Tamarin: " << cmd << endl;
-  }
+  if(parameters.verbose) clog << endl << "Calling Tamarin: " << cmd << endl;
   
   TamarinOutput tamarin_output;
   tamarin_output.duration = executeShellCommand(cmd);
@@ -257,6 +261,7 @@ TamarinOutput processTamarinLemma(const string& lemma_name,
   tamarin_output.result = getTamarinResultForLemma(file_stream, lemma_name);
 
   std::remove(kTempfilePath.c_str());
+
   return tamarin_output;
 }
 
@@ -654,6 +659,11 @@ int main (int argc, char *argv[])
   parameters.tamarin_path = "tamarin-prover";
   app.add_option("--tamarin_path", parameters.tamarin_path,
                  "Path to the Tamarin executable (default: tamarin-prover)."
+                );
+
+  parameters.proof_directory = "";
+  app.add_option("--proof_directory", parameters.proof_directory,
+                 "Directory where the proofs should be stored."
                 );
   
   parameters.penetration_lemma = "";
