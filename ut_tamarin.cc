@@ -543,7 +543,8 @@ TamarinConfig getTamarinConfig(const string& config_file_path){
 
 // Runs Tamarin on lemmas in the given spthy file. The actual choice
 // of lemmas depends on the command-line parameters.
-int runTamarinOnLemmas(const CmdParameters& parameters, 
+// Returns true if Tamarin is able to prove all lemmas.
+bool runTamarinOnLemmas(const CmdParameters& parameters, 
                        ostream& output_stream){
   printHeader(parameters, output_stream);
 
@@ -555,6 +556,8 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
                                               config.lemma_blacklist,
                                               parameters.starting_lemma);
   output_stream << endl;
+
+  bool success = true; 
 
   unordered_map<ProverResult, int> count;
   int overall_duration = 0;
@@ -584,8 +587,10 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
     overall_duration += stats.duration;
     count[stats.result]++;
     std::remove(kTempfilePath.c_str());
-    if(parameters.abort_after_failure && 
-       stats.result != ProverResult::True) break;
+    if(stats.result != ProverResult::True){
+      success = false;
+      if(parameters.abort_after_failure) break;
+    }
   }
   output_stream << endl << "Summary: " << endl;
   output_stream << to_string(ProverResult::True) << ": " <<
@@ -596,7 +601,7 @@ int runTamarinOnLemmas(const CmdParameters& parameters,
   output_stream << "Overall duration: " << toSecondsString(overall_duration) 
    << endl;
 
-  return 0;
+  return success;
 }
 
 // Runs Tamarin on the given lemma, trying out all different heuristics until
@@ -732,6 +737,6 @@ int main (int argc, char *argv[])
   } else if(parameters.penetration_lemma != ""){
     return penetrateLemma(parameters, cout);
   } else {
-    return runTamarinOnLemmas(parameters, cout);
+    return runTamarinOnLemmas(parameters, cout) ? 0 : 1;
   }
 }
