@@ -14,7 +14,7 @@ Lemma lists and dedicated heuristics can be specified in a JSON config file as e
 
 ### Prerequisites
 
-UT Tamarin requires an installed version of Tamarin. By default, UT Tamarin assumes that Tamarin is in your PATH, meaning that it can be executed by calling `tamarin-prover`. If this is not the case, then you can specify the path to an executable of Tamarin.
+UT Tamarin requires an installed version of the [GNU M4 macro processor](https://www.gnu.org/software/m4/) and of Tamarin (find installation instructions [here](https://tamarin-prover.github.io/manual/book/002_installation.html)). By default, UT Tamarin assumes that Tamarin is in your PATH, meaning that it can be executed by calling `tamarin-prover`. If this is not the case, then you can specify the path to an executable of Tamarin via a command-line parameter (call `./ut_tamarin --help` for details).
 
 ### Installation
 
