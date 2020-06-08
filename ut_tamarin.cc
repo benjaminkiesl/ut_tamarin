@@ -475,6 +475,10 @@ string applyCustomHeuristics(const string& spthy_file_path,
   if(cmd_parameters.verbose && !m4_commands.empty())
     clog << "Fact Annotations for " << lemma_name << ": " << endl;
 
+  // Change quotes for M4, otherwise single quotes in spthy file lead to M4 bugs
+  tempfile_m4 << "changequote(<!,!>)" << endl;
+  tempfile_m4 << "changecom(<!/*!>, <!*/!>)" << endl;
+
   for(auto m4_command : m4_commands){
     tempfile_m4 << m4_command << endl;
     if(cmd_parameters.verbose)
