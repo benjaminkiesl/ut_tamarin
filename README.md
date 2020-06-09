@@ -6,7 +6,7 @@ UT Tamarin is a simple tool that assists you with the development and maintenanc
 * Specify dedicated heuristics that are tailored to specific lemmas.
 * Run Tamarin on a lemma by trying all predefined heuristics ("hammer" at the lemma).
 
-Lemma lists and dedicated heuristics can be specified in a JSON config file as explained below. The following screenshot shows a typical output of UT Tamarin when run on a couple of lemmas:
+Lemma lists and dedicated heuristics can be specified in a JSON configuration file as explained below. The following screenshot shows a typical output of UT Tamarin when run on a couple of lemmas:
 
 ![UT Tamarin Output](images/screenshot_utt.png)
 
@@ -29,7 +29,7 @@ To run UT Tamarin, just execute the following command from the shell:
 * `INPUT_TAMARIN_FILE` is the path to a Tamarin theory file (i.e., a .spthy file)
 * `CONFIG_FILE` is the path to a JSON file that contains configuration options for UT Tamarin such as the list of lemmas that should be proved or dedicated custom heuristics. See below for details.
 
-For example, if your Tamarin theory file is the file test_protocol.spthy (located in the directory from which you call UT Tamarin) and your JSON config file is the file utt_config.json, then you would call UT Tamarin as follows:
+For example, if your Tamarin theory file is the file test_protocol.spthy (located in the directory from which you call UT Tamarin) and your JSON configuration file is the file utt_config.json, then you would call UT Tamarin as follows:
 
 `./ut_tamarin test_protocol.spthy --config_file=utt_config.json`
 
@@ -43,10 +43,10 @@ UT Tamarin allows you to specify configuration options via a JSON file that you 
 
 * A white list of lemmas: If you specify a white list, then only those lemmas from the Tamarin theory file are proved that are also in the white list. 
 * A black list of lemmas: If you specify a blacklist, then all lemmas from the blacklist are ignored when running UT Tamarin.
-* Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. Higher priority is achieved by adding the prefix `F_` to a fact symbol, lower priority is achieved by adding `L_`.
-* Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local facts can be declared as "neutral" (in case they have a high or low priority in the global fact annotations).
+* Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. UT Tamarin enforces these priority declarations by adding either the prefix `F_` (higher priority) or `L_` (lower priority) to a fact symbol before calling Tamarin (no worries, the original spthy file is not changed).
+* Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local facts can be declared as "neutral" (this can be useful when they are assigned a high or low priority in the global fact annotations).
 
-The following is a sample JSON config for UT Tamarin that should be self-explanatory:
+The following is a sample JSON configuration for UT Tamarin that should be self-explanatory:
 
 ```
 {
