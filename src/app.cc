@@ -32,9 +32,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "third-party/cli11/CLI11.hpp"
-
 #include "tamarin_config.h"
+#include "tamarin_interface.h"
+#include "utility.h"
 
 using std::string;
 using std::vector;
@@ -57,100 +57,17 @@ const string kTempfilePath = "/tmp/uttamarintemp.ut";
 const string kPreprocessedTempfilePath = "/tmp/preprocessed.spthy";
 const string kM4TempfilePath = "/tmp/temp.m4";
 
-// Converts a given ProverResult to a string. If the parameter 'is_colorized'
-// is true, then the string is colored using color code for the bash
-string to_string(const ProverResult& prover_result, bool is_colorized=false) {
-  string result_string; 
-  if(prover_result == ProverResult::True) 
-    result_string = "verified"; 
-  else if(prover_result == ProverResult::False) 
-    result_string = "false"; 
-  else result_string = "timeout"; 
-  
-  if(is_colorized) { 
-    string prefix = "\033["; 
-    string color_code = prover_result == ProverResult::True ? 
-      "32" : prover_result == ProverResult::False ? "31" : "33"; 
-    result_string = prefix + color_code + "m" + result_string + "\033[m"; 
-  } 
-  return result_string; 
-}
-
-// Takes a duration in seconds and converts it into a string of the form MM:SS
-string durationToString(int seconds) { 
-  string strMinutes = std::to_string(seconds / 60); 
-  string strSeconds = std::to_string(seconds % 60); 
-  if(strMinutes.size() < 2) strMinutes = "0" + strMinutes; 
-  if(strSeconds.size() < 2) strSeconds = "0" + strSeconds; 
-  return strMinutes + ":" + strSeconds; 
-}
-
-// Takes a duration in seconds and converts it into a string saying "duration
-// seconds"
-string toSecondsString(int duration) { 
-  return std::to_string(duration) + " second" + (duration != 1 ? "s" : ""); 
-}
-
-// 
-string to_string(const TamarinOutput& tamarin_output, 
-                 bool is_colorized=false) { 
-  string formatted = to_string(tamarin_output.result, is_colorized); 
-  formatted += " (" + toSecondsString(tamarin_output.duration) + ")"; 
-  return formatted; 
-}
-
-// Trims white space from the left of the given string.
-void trimLeft(string& line) { 
-  line.erase(line.begin(), std::find_if(line.begin(), line.end(), 
-             [](int ch) { return !std::isspace(ch); })); 
-}
-
-// Computes the edit distance between the substring of A starting at a and the
-// substring of B starting at b. The parameter 'dp' is used for memoization.
-int editDistanceHelper(const string& A, int a, const string& B, int b,
-                       vector<vector<int>>& dp) { 
-  if(a == A.size()) return B.size() - b; 
-  if(b == B.size()) return A.size() - a; 
-  if(dp[a][b] == -1) { 
-    int add = 1 + editDistanceHelper(A, a, B, b+1, dp); 
-    int remove = 1 + editDistanceHelper(A, a+1, B, b, dp); 
-    int modification_cost = A[a] == B[b] ? 0 : 1; 
-    int keep_or_modify = modification_cost + 
-      editDistanceHelper(A, a+1, B, b+1, dp); 
-    dp[a][b] = min(add, min(remove, keep_or_modify)); 
-  } 
-  return dp[a][b]; 
-}
-
-// Computes the edit distance between two strings A and B
-int editDistance(const string& A, const string B) { 
-  vector<vector<int>> dp(A.size(), vector<int>(B.size(), -1)); 
-  return editDistanceHelper(A, 0, B, 0, dp); 
-}
-
-// Executes a shell command and returns the duration of the execution in
-// seconds.
-int executeShellCommand(const string& cmd) { 
-  auto start_time = std::chrono::high_resolution_clock::now();
-  int status; 
-  auto fp = popen(cmd.c_str(), "r"); 
-  pclose(fp); 
-  auto end_time = std::chrono::high_resolution_clock::now(); 
-  return std::chrono::duration_cast<std::chrono::seconds> 
-    (end_time - start_time).count(); 
-}
-
 string App::RunTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
                                     const string& spthy_file_path,
                                     const string& tamarin_parameters) {
-  executeShellCommand(tamarin_path + " " + tamarin_parameters + 
+  ExecuteShellCommand(tamarin_path + " " + tamarin_parameters + 
        spthy_file_path + " 1> " + kTempfilePath + " 2> /dev/null");
   return kTempfilePath;
 }
 
 string App::ExtractLemmaName(string tamarin_line) {
-  trimLeft(tamarin_line);
+  TrimLeft(tamarin_line);
   return tamarin_line.substr(0, tamarin_line.find(' '));
 }
 
@@ -227,7 +144,7 @@ TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
   if(parameters.verbose) clog << endl << "Calling Tamarin: " << cmd << endl;
   
   TamarinOutput tamarin_output;
-  tamarin_output.duration = executeShellCommand(cmd);
+  tamarin_output.duration = ExecuteShellCommand(cmd);
 
   ifstream file_stream {kTempfilePath, ifstream::in};
   tamarin_output.result = GetTamarinResultForLemma(file_stream, lemma_name);
@@ -283,7 +200,7 @@ vector<string> App::RemoveLemmasBeforeStart(const vector<string>& all_lemmas,
   auto it_start = all_lemmas.begin();
   for(auto it = all_lemmas.begin();it != all_lemmas.end();++it) {
     auto lemma = *it;
-    int edit_distance = editDistance(starting_lemma, lemma);
+    int edit_distance = EditDistance(starting_lemma, lemma);
     if(edit_distance < min_edit_distance) {
       min_edit_distance = edit_distance; 
       it_start = it;
@@ -392,7 +309,7 @@ string App::ApplyCustomHeuristics(const string& spthy_file_path,
   while(std::getline(spthy_file, spthy_file_line)) 
     tempfile_m4 << spthy_file_line << endl;
 
-  executeShellCommand("m4 " + kM4TempfilePath + " > " + 
+  ExecuteShellCommand("m4 " + kM4TempfilePath + " > " + 
                       kPreprocessedTempfilePath);
 
   return kPreprocessedTempfilePath;
@@ -432,7 +349,7 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
                                               preprocessed_spthy_file,
                                               parameters, "");
     do{
-      auto seconds = durationToString(
+      auto seconds = DurationToString(
         std::chrono::duration_cast<std::chrono::seconds>(
            std::chrono::high_resolution_clock::now() - start_time).count());
       cout << "\r" << line << seconds << " " << std::flush;
@@ -454,7 +371,7 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
     << count[ProverResult::False] << ", " << to_string(ProverResult::Unknown)
     << ": " << count[ProverResult::Unknown] << endl;
 
-  output_stream << "Overall duration: " << toSecondsString(overall_duration) 
+  output_stream << "Overall duration: " << ToSecondsString(overall_duration) 
    << endl;
 
   return success;
@@ -478,7 +395,7 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
   string penetration_lemma = *lemma_it;
 
   output_stream << "Penetrating lemma '" << penetration_lemma << 
-    "' with a per-heuristic timeout of " << toSecondsString(p.timeout) <<
+    "' with a per-heuristic timeout of " << ToSecondsString(p.timeout) <<
     "." << endl << endl;
 
   vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
@@ -487,7 +404,7 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
     auto output = ProcessTamarinLemma(penetration_lemma, p.tamarin_path, p,
                                       "--heuristic=" + heuristic);
     output_stream << to_string(output.result, &output_stream == &cout) 
-      << " (" << toSecondsString(output.duration) << ")" << endl;
+      << " (" << ToSecondsString(output.duration) << ")" << endl;
     if(output.result == ProverResult::True) break; 
   }
   return 0;

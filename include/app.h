@@ -32,6 +32,9 @@
 namespace ut_tamarin {
 
 struct TamarinConfig;
+struct TamarinOutput;
+
+enum class ProverResult;
 
 struct CmdParameters { 
   std::string tamarin_path;
@@ -45,13 +48,6 @@ struct CmdParameters {
   bool abort_after_failure; 
   bool generate_lemma_file; 
   bool verbose; 
-};
-
-enum class ProverResult { True, False, Unknown };
-
-struct TamarinOutput { 
-  ProverResult result; 
-  int duration; // in seconds 
 };
 
 class App {
