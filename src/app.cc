@@ -61,10 +61,42 @@ string App::RunTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
                                     const string& spthy_file_path,
                                     const string& tamarin_parameters) {
-  ExecuteShellCommand(tamarin_path + " " + tamarin_parameters + 
+  ExecuteShellCommand(tamarin_path + " " + tamarin_parameters +
        spthy_file_path + " 1> " + kTempfilePath + " 2> /dev/null");
   return kTempfilePath;
 }
+
+TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
+                                       const string& spthy_file_path,
+                                       const CmdParameters& parameters,
+                                       string tamarin_args) {
+
+  string cmd = "";
+  if(parameters.timeout > 0)
+    cmd += "timeout " + std::to_string(parameters.timeout) + " ";
+
+  if(parameters.proof_directory != "") {
+    tamarin_args += " --output=" + parameters.proof_directory + "/" +
+                    lemma_name + ".spthy";
+  }
+
+  cmd += parameters.tamarin_path + " --prove=" + lemma_name + " "
+         + tamarin_args + " " + spthy_file_path
+         + " 1> " + kTempfilePath + " 2> /dev/null";
+
+  if(parameters.verbose) clog << endl << "Calling Tamarin: " << cmd << endl;
+
+  TamarinOutput tamarin_output;
+  tamarin_output.duration = ExecuteShellCommand(cmd);
+
+  ifstream file_stream {kTempfilePath, ifstream::in};
+  tamarin_output.result = GetTamarinResultForLemma(file_stream, lemma_name);
+
+  std::remove(kTempfilePath.c_str());
+
+  return tamarin_output;
+}
+
 
 string App::ExtractLemmaName(string tamarin_line) {
   TrimLeft(tamarin_line);
@@ -116,53 +148,7 @@ ProverResult App::GetTamarinResultForLemma(istream& stream_of_tamarin_output,
   return ProverResult::Unknown;
 }
 
-void App::WriteLemmaNames(const vector<string>& lemma_names, 
-                     ostream& output_stream) {
-  for(auto lemma_name : lemma_names) {
-    output_stream << lemma_name << endl;
-  }
-}
-
-TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
-                                       const string& spthy_file_path,
-                                       const CmdParameters& parameters,
-                                       string tamarin_args) {
-
-  string cmd = "";
-  if(parameters.timeout > 0) 
-    cmd += "timeout " + std::to_string(parameters.timeout) + " ";
-
-  if(parameters.proof_directory != "") {
-    tamarin_args += " --output=" + parameters.proof_directory + "/" + 
-                    lemma_name + ".spthy";
-  }
-  
-  cmd += parameters.tamarin_path + " --prove=" + lemma_name + " " 
-       + tamarin_args + " " + spthy_file_path 
-       + " 1> " + kTempfilePath + " 2> /dev/null";
-
-  if(parameters.verbose) clog << endl << "Calling Tamarin: " << cmd << endl;
-  
-  TamarinOutput tamarin_output;
-  tamarin_output.duration = ExecuteShellCommand(cmd);
-
-  ifstream file_stream {kTempfilePath, ifstream::in};
-  tamarin_output.result = GetTamarinResultForLemma(file_stream, lemma_name);
-
-  std::remove(kTempfilePath.c_str());
-
-  return tamarin_output;
-}
-
-int App::PrintLemmaNames(const CmdParameters& parameters, 
-                         ostream& output_stream) {
-  auto lemma_names = ReadLemmaNamesFromSpthyFile(parameters.tamarin_path,
-      parameters.spthy_file_path);
-  WriteLemmaNames(lemma_names, output_stream); 
-  return 0;
-}
-
-vector<string> App::GetLemmasInWhitelist(const vector<string>& all_lemmas, 
+vector<string> App::GetLemmasInWhitelist(const vector<string>& all_lemmas,
                                          const vector<string>& whitelist) {
   for(auto lemma_name : whitelist) {
     if(std::find(all_lemmas.begin(), all_lemmas.end(), lemma_name)

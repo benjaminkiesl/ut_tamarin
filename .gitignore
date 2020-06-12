@@ -1,4 +1,7 @@
-ut_tamarin
+build
+cmake-build-debug
+.idea
+.vscode
 *.ut
 .temp*
 *.vscode

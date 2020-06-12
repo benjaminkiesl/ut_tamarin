@@ -27,8 +27,6 @@
 #include <string>
 #include <vector>
 
-#include "third-party/nlohmann/json.hpp"
-
 namespace ut_tamarin {
 
 struct TamarinConfig;
@@ -62,6 +60,14 @@ class App {
       const std::string& spthy_file_path,
       const std::string& tamarin_parameters="");
 
+  // Takes as input a  lemma name, the command line parameters, and dedicated
+  // arguments for Tamarin and then runs Tamarin on the given lemma. Returns
+  // some output/statistics (like Tamarin's result and the execution duration).
+  TamarinOutput ProcessTamarinLemma(const std::string& lemma_name,
+                                    const std::string& spthy_file_path,
+                                    const CmdParameters& parameters,
+                                    std::string tamarin_args="");
+
   // Takes as input a line of the Tamarin output (a line that shows the Tamarin
   // result for a particular lemma) and returns the name of the lemma.
   std::string ExtractLemmaName(std::string tamarin_line);
@@ -89,24 +95,6 @@ class App {
   // returns the result ("verified", "falsified", "analysis incomplete").
   ProverResult GetTamarinResultForLemma(std::istream& stream_of_tamarin_output,
                                         const std::string& lemma_name);
-
-  // Takes as input a vector of lemma names and an output stream and writes the
-  // lemma names to the stream.
-  void WriteLemmaNames(const std::vector<std::string>& lemma_names, 
-                       std::ostream& output_stream);
-
-  // Takes as input a  lemma name, the command line parameters, and dedicated
-  // arguments for Tamarin and then runs Tamarin on the given lemma. Returns
-  // some output/statistics (like Tamarin's result and the execution duration).
-  TamarinOutput ProcessTamarinLemma(const std::string& lemma_name, 
-                                    const std::string& spthy_file_path, 
-                                    const CmdParameters& parameters, 
-                                    std::string tamarin_args="");
-
-  // Runs the tool in the mode where a Tamarin theory file (".spthy") is read
-  // and a list of the lemmas occurring in that file is written to a file.
-  int PrintLemmaNames(const CmdParameters& parameters, 
-                      std::ostream& output_stream);
 
   // Takes as input two vectors of lemmas (the initial lemmas and the
   // "whitelist", respectively) and removes from the initial lemmas all lemmas

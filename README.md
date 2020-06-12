@@ -18,11 +18,13 @@ UT Tamarin requires an installed version of the [GNU M4 macro processor](https:/
 
 ### Installation
 
-To build UT Tamarin, just run the `make` command from within the main directory. This then builds the executable `ut_tamarin`.
+The easiest way to build UT Tamarin is to just execute the script 'build.sh' in the main directory. After this, the executable 'ut_tamarin' will be located at 'build/bin/ut_tamarin'.
+
+The build.sh script simply creates a directory 'build' within the main directory and then executes 'cmake ..' followed by 'make' from within that build directory. If you don't want to use Make, and are familiar with CMake, you can also build the project for any platform you want using the CMake file CMakeLists.txt.
 
 ### Running UT Tamarin
 
-To run UT Tamarin, just execute the following command from the shell: 
+To run UT Tamarin, just execute the following command from the shell (assuming that you are in the directory that contains the executable 'ut_tamarin'): 
 
 `./ut_tamarin INPUT_TAMARIN_FILE --config_file=CONFIG_FILE`
 
@@ -41,8 +43,8 @@ Finally, make sure you have write access to the directory from which you call ut
 
 UT Tamarin allows you to specify configuration options via a JSON file that you then pass to UT Tamarin as explained above. Such a JSON file can contain:
 
-* A white list of lemmas: If you specify a white list, then only those lemmas from the Tamarin theory file are proved that are also in the white list. 
-* A black list of lemmas: If you specify a blacklist, then all lemmas from the blacklist are ignored when running UT Tamarin.
+* An allow list of lemmas: If you specify an allow list, then only those lemmas from the Tamarin theory file are proved that are also in the allow list. 
+* A deny list of lemmas: If you specify a deny list, then all lemmas from the deny list are ignored when running UT Tamarin.
 * Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. UT Tamarin enforces these priority declarations by adding either the prefix `F_` (higher priority) or `L_` (lower priority) to a fact symbol before calling Tamarin (no worries, the original spthy file is not changed).
 * Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local fact annotations can assign a "neutral" priority (this can be useful when you want to remove a global fact annotation for a specific lemma).
 
@@ -50,11 +52,11 @@ The following is a sample JSON configuration for UT Tamarin that should be self-
 
 ```
 {
-	"lemma_blacklist": [ 
-		"frist_black_listed_lemma",
-		"second_black_listed_lemma"
+	"lemma_deny_list": [ 
+		"frist_denied_lemma",
+		"second_denied_lemma"
 	],
-	"lemma_whitelist": [],
+	"lemma_allow_list": [],
 	"global_annotations": {
 		"important_facts": ["NewFact", "OtherFact"],
 		"unimportant_facts": ["SomeUnimportantFact"],

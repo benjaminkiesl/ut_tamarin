@@ -23,7 +23,7 @@
 #include <iostream>
 #include <string>
 
-#include "third-party/cli11/CLI11.hpp"
+#include "cli11/CLI11.hpp"
 
 #include "app.h"
 #include "terminator.h"
@@ -66,17 +66,6 @@ int main (int argc, char *argv[])
                  "Directory where the proofs should be stored."
                 );
   
-  parameters.penetration_lemma = "";
-  cli.add_option("--penetrate", parameters.penetration_lemma,
-                 "Name of a lemma that should be proved."
-                );
-
-  parameters.generate_lemma_file = false;
-  cli.add_flag("-g,--generate_lemmas", 
-               parameters.generate_lemma_file,
-               "Tells the tool to output all lemmas specified in the "
-               ".spthy file.");
-
   parameters.timeout = 600;
   cli.add_option("-t,--timeout", parameters.timeout,
                  "Per-lemma timeout in seconds "
@@ -101,9 +90,7 @@ int main (int argc, char *argv[])
   ut_tamarin::termination::registerSIGINTHandler(parameters.tamarin_path, 
                                                  app.GetTempfilePath());
 
-  if(parameters.generate_lemma_file) {
-    return app.PrintLemmaNames(parameters, std::cout);
-  } else if(parameters.penetration_lemma != ""){
+  if(parameters.penetration_lemma != ""){
     return app.PenetrateLemma(parameters, std::cout);
   } else {
     return app.RunTamarinOnLemmas(parameters, std::cout) ? 0 : 1;
