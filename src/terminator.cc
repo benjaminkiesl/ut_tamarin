@@ -30,7 +30,7 @@
 
 using std::string;
 
-namespace ut_tamarin::termination {
+namespace uttamarin::termination {
 
 // Holds the name of the tamarin process. This name is used for killing Tamarin 
 // when the program receives a SIGINT signal (sent by Ctrl+C).
@@ -64,4 +64,4 @@ void registerSIGINTHandler(const string& process_name,
   default_sigint_handler = std::signal(SIGINT, sigint_handler);
 }
 
-} // namespace ut_tamarin::terminator
+} // namespace uttamarin::terminator

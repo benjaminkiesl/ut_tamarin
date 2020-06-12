@@ -34,7 +34,7 @@ using std::vector;
 using std::ifstream;
 using json = nlohmann::json;
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 TamarinConfig ParseTamarinConfigFile(const string& config_file_path){
   TamarinConfig tamarin_config;
@@ -98,4 +98,4 @@ bool FactAnnotations::ContainFact(const std::string& fact) const {
           != neutral_facts.end(); 
 } 
 
-} // namespace ut_tamarin
+} // namespace uttamarin

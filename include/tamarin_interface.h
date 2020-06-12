@@ -23,7 +23,7 @@
 #ifndef UT_TAMARIN_TAMARIN_INTERFACE_H_ 
 #define UT_TAMARIN_TAMARIN_INTERFACE_H_
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 enum class ProverResult { True, False, Unknown };
 
@@ -32,6 +32,6 @@ struct TamarinOutput {
   int duration; // in seconds 
 };
 
-} // namespace ut_tamarin
+} // namespace uttamarin
 
 #endif

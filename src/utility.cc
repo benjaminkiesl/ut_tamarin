@@ -34,7 +34,7 @@
 using std::string;
 using std::vector;
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 string ToSecondsString(int duration) { 
   return std::to_string(duration) + " second" + (duration != 1 ? "s" : ""); 
@@ -109,4 +109,4 @@ int ExecuteShellCommand(const string& cmd) {
     (end_time - start_time).count(); 
 }
 
-} // namespace ut_tamarin
+} // namespace uttamarin

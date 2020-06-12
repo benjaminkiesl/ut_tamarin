@@ -27,11 +27,13 @@
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <memory>
 #include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "lemma_processor.h"
 #include "tamarin_config.h"
 #include "tamarin_interface.h"
 #include "utility.h"
@@ -43,7 +45,6 @@ using std::min;
 using std::numeric_limits;
 using std::cout;
 using std::cerr;
-using std::clog;
 using std::endl;
 using std::flush;
 using std::ifstream;
@@ -51,11 +52,19 @@ using std::ofstream;
 using std::istream;
 using std::ostream;
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 const string kTempfilePath = "/tmp/uttamarintemp.ut";
 const string kPreprocessedTempfilePath = "/tmp/preprocessed.spthy";
 const string kM4TempfilePath = "/tmp/temp.m4";
+
+
+App::App(std::unique_ptr<LemmaProcessor> lemma_processor) :
+  lemma_processor_(std::move(lemma_processor)) {
+
+}
+
+App::~App() = default;
 
 string App::RunTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
@@ -70,8 +79,7 @@ TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
                                        const string& spthy_file_path,
                                        const CmdParameters& parameters,
                                        string tamarin_args) {
-
-  string cmd = "";
+  /*string cmd = "";
   if(parameters.timeout > 0)
     cmd += "timeout " + std::to_string(parameters.timeout) + " ";
 
@@ -84,17 +92,16 @@ TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
          + tamarin_args + " " + spthy_file_path
          + " 1> " + kTempfilePath + " 2> /dev/null";
 
-  if(parameters.verbose) clog << endl << "Calling Tamarin: " << cmd << endl;
-
   TamarinOutput tamarin_output;
   tamarin_output.duration = ExecuteShellCommand(cmd);
 
   ifstream file_stream {kTempfilePath, ifstream::in};
-  tamarin_output.result = GetTamarinResultForLemma(file_stream, lemma_name);
+  tamarin_output.result = ExtractResultForLemma(file_stream, lemma_name);
 
   std::remove(kTempfilePath.c_str());
 
-  return tamarin_output;
+  return tamarin_output;*/
+  return lemma_processor_->ProcessLemma(lemma_name);
 }
 
 
@@ -134,8 +141,8 @@ vector<string> App::ReadLemmaNamesFromSpthyFile(const string& tamarin_path,
   return lemma_names;
 }
 
-ProverResult App::GetTamarinResultForLemma(istream& stream_of_tamarin_output,
-                                      const string& lemma_name) {
+ProverResult App::ExtractResultForLemma(istream& stream_of_tamarin_output,
+                                        const string& lemma_name) {
   string line;
   MoveTamarinStreamToLemmaNames(stream_of_tamarin_output);
   while(getline(stream_of_tamarin_output, line) 
@@ -277,17 +284,12 @@ string App::ApplyCustomHeuristics(const string& spthy_file_path,
 
   ofstream tempfile_m4{kM4TempfilePath};
 
-  if(cmd_parameters.verbose && !m4_commands.empty())
-    clog << "Fact Annotations for " << lemma_name << ": " << endl;
-
   // Change quotes for M4, otherwise single quotes in spthy file lead to M4 bugs
   tempfile_m4 << "changequote(<!,!>)" << endl;
   tempfile_m4 << "changecom(<!/*!>, <!*/!>)" << endl;
 
   for(auto m4_command : m4_commands) {
     tempfile_m4 << m4_command << endl;
-    if(cmd_parameters.verbose)
-      clog << m4_command << endl;
   }
 
   ifstream spthy_file{spthy_file_path};
@@ -400,4 +402,4 @@ string App::GetTempfilePath() {
   return kTempfilePath;
 }
 
-} // namespace ut_tamarin
+} // namespace uttamarin

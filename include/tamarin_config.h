@@ -29,7 +29,7 @@
 
 #include "nlohmann/json.hpp"
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 struct FactAnnotations { 
   std::vector<std::string> important_facts; 
@@ -59,6 +59,6 @@ TamarinConfig ParseTamarinConfigFile(const std::string& config_file_path);
 // Gets the fact annotations from a JSON annotation.
 FactAnnotations GetFactAnnotations(nlohmann::json json_annotation);
 
-} // namespace ut_tamarin
+} // namespace uttamarin
 
 #endif

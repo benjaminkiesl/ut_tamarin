@@ -26,7 +26,7 @@
 #include <string>
 #include <vector>
 
-namespace ut_tamarin {
+namespace uttamarin {
 
 struct TamarinOutput;
 
@@ -57,6 +57,6 @@ int EditDistance(const std::string& A, const std::string B);
 // seconds.
 int ExecuteShellCommand(const std::string& cmd);
 
-} // namespace ut_tamarin::utility
+} // namespace uttamarin::utility
 
 #endif

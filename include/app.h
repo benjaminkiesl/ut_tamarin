@@ -24,10 +24,13 @@
 #define UT_TAMARIN_APP_H_
 
 #include <iostream>
+#include <memory>
 #include <string>
 #include <vector>
 
-namespace ut_tamarin {
+namespace uttamarin {
+
+class LemmaProcessor;
 
 struct TamarinConfig;
 struct TamarinOutput;
@@ -44,13 +47,13 @@ struct CmdParameters {
   std::string proof_directory; 
   int timeout; 
   bool abort_after_failure; 
-  bool generate_lemma_file; 
-  bool verbose; 
 };
 
 class App {
 
  public:
+  App(std::unique_ptr<LemmaProcessor> lemma_processor);
+  ~App();
 
   // Executes Tamarin with the given parameters and writes the needed output to
   // a temp file while relocating the other output to /dev/null.  Returns the
@@ -93,8 +96,8 @@ class App {
 
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
-  ProverResult GetTamarinResultForLemma(std::istream& stream_of_tamarin_output,
-                                        const std::string& lemma_name);
+  ProverResult ExtractResultForLemma(std::istream& stream_of_tamarin_output,
+                                     const std::string& lemma_name);
 
   // Takes as input two vectors of lemmas (the initial lemmas and the
   // "whitelist", respectively) and removes from the initial lemmas all lemmas
@@ -169,8 +172,11 @@ class App {
   // Returns the path to the main temp file created by UT Tamarin.
   std::string GetTempfilePath();
 
+ private:
+  std::unique_ptr<LemmaProcessor> lemma_processor_;
+
 };
 
-} // namespace ut_tamarin
+} // namespace uttamarin
 
 #endif

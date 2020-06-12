@@ -21,16 +21,18 @@
 // IN THE SOFTWARE.
 
 #include <iostream>
+#include <memory>
 #include <string>
 
 #include "cli11/CLI11.hpp"
 
 #include "app.h"
+#include "bash_lemma_processor.h"
 #include "terminator.h"
 
 int main (int argc, char *argv[])
 {
-  ut_tamarin::CmdParameters parameters;
+  uttamarin::CmdParameters parameters;
 
   CLI::App cli{
     "UT Tamarin is a small tool that runs the Tamarin prover on selected\n"
@@ -76,19 +78,18 @@ int main (int argc, char *argv[])
                parameters.abort_after_failure,
                "Tells the tool to abort if Tamarin fails to prove a lemma.");
 
-  parameters.verbose = false;
-
-  cli.add_flag("-v,--verbose", 
-               parameters.verbose,
-               "Tells the tool to output debug information.");
-
   CLI11_PARSE(cli, argc, argv);
 
+  auto lemma_processor = std::make_unique<uttamarin::BashLemmaProcessor>(
+          parameters.spthy_file_path,
+          parameters.tamarin_path,
+          parameters.proof_directory,
+          parameters.timeout);
 
-  ut_tamarin::App app;
+  uttamarin::App app(std::move(lemma_processor));
   
-  ut_tamarin::termination::registerSIGINTHandler(parameters.tamarin_path, 
-                                                 app.GetTempfilePath());
+  uttamarin::termination::registerSIGINTHandler(parameters.tamarin_path,
+                                                app.GetTempfilePath());
 
   if(parameters.penetration_lemma != ""){
     return app.PenetrateLemma(parameters, std::cout);

@@ -20,21 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_TERMINATOR_H_ 
-#define UT_TAMARIN_TERMINATOR_H_
+#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
+#define UT_TAMARIN_LEMMA_PROCESSOR_H_
 
 #include <string>
 
-namespace uttamarin::termination {
+#include "tamarin_interface.h"
 
-// Signal handler for SIGINT signal (sent by Ctrl+C)
-void sigint_handler(int signal);
+namespace uttamarin {
 
-// Sets the global 'tamarin_process' name. This is needed for killing Tamarin
-// in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const std::string& process_name,
-                           const std::string& tempfile_path);
+class LemmaProcessor {
+ public:
 
-} // namespace uttamarin::terminator
+  // Takes as input a  lemma name, the command line parameters, and dedicated
+  // arguments for Tamarin and then runs Tamarin on the given lemma. Returns
+  // some output/statistics (like Tamarin's result and the execution duration).
+  virtual TamarinOutput ProcessLemma(const std::string& lemma_name) = 0;
+};
+
+} // namespace uttamarin
 
 #endif

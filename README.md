@@ -14,30 +14,30 @@ Lemma lists and dedicated heuristics can be specified in a JSON configuration fi
 
 ### Prerequisites
 
-UT Tamarin requires an installed version of the [GNU M4 macro processor](https://www.gnu.org/software/m4/) and of Tamarin (find installation instructions [here](https://tamarin-prover.github.io/manual/book/002_installation.html)). By default, UT Tamarin assumes that Tamarin is in your PATH, meaning that it can be executed by calling `tamarin-prover`. If this is not the case, then you can specify the path to an executable of Tamarin via a command-line parameter (call `./ut_tamarin --help` for details).
+UT Tamarin requires an installed version of the [GNU M4 macro processor](https://www.gnu.org/software/m4/) and of Tamarin (find installation instructions [here](https://tamarin-prover.github.io/manual/book/002_installation.html)). By default, UT Tamarin assumes that Tamarin is in your PATH, meaning that it can be executed by calling `tamarin-prover`. If this is not the case, then you can specify the path to an executable of Tamarin via a command-line parameter (call `./uttamarin --help` for details). Since Tamarin doesn't run on Windows, neither does UT Tamarin.
 
 ### Installation
 
-The easiest way to build UT Tamarin is to just execute the script 'build.sh' in the main directory. After this, the executable 'ut_tamarin' will be located at 'build/bin/ut_tamarin'.
+The easiest way to build UT Tamarin is to just execute the script 'build.sh' in the main directory. After this, the executable 'uttamarin' will be located at 'build/bin/uttamarin'.
 
 The build.sh script simply creates a directory 'build' within the main directory and then executes 'cmake ..' followed by 'make' from within that build directory. If you don't want to use Make, and are familiar with CMake, you can also build the project for any platform you want using the CMake file CMakeLists.txt.
 
 ### Running UT Tamarin
 
-To run UT Tamarin, just execute the following command from the shell (assuming that you are in the directory that contains the executable 'ut_tamarin'): 
+To run UT Tamarin, just execute the following command from the shell (assuming that you are in the directory that contains the executable 'uttamarin'): 
 
-`./ut_tamarin INPUT_TAMARIN_FILE --config_file=CONFIG_FILE`
+`./uttamarin INPUT_TAMARIN_FILE --config_file=CONFIG_FILE`
 
 * `INPUT_TAMARIN_FILE` is the path to a Tamarin theory file (i.e., a .spthy file)
 * `CONFIG_FILE` is the path to a JSON file that contains configuration options for UT Tamarin such as the list of lemmas that should be proved or dedicated custom heuristics. See below for details.
 
 For example, if your Tamarin theory file is the file test_protocol.spthy (located in the directory from which you call UT Tamarin) and your JSON configuration file is the file utt_config.json, then you would call UT Tamarin as follows:
 
-`./ut_tamarin test_protocol.spthy --config_file=utt_config.json`
+`./uttamarin test_protocol.spthy --config_file=utt_config.json`
 
-Further arguments, such as a dedicated timeout for Tamarin (default is ten minutes) can be passed to UT Tamarin. For details call `./ut_tamarin --help`.
+Further arguments, such as a dedicated timeout for Tamarin (default is ten minutes) can be passed to UT Tamarin. For details call `./uttamarin --help`.
 
-Finally, make sure you have write access to the directory from which you call ut_tamarin because ut_tamarin produces temporary files in that directory.
+Finally, make sure you have write access to the directory from which you call uttamarin because uttamarin produces temporary files in that directory.
 
 ### Specifying Configuration Options of UT Tamarin
 
