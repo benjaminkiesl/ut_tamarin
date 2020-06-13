@@ -30,5 +30,5 @@ find_package(Threads REQUIRED)
 target_link_libraries(lib_uttamarin Threads::Threads)
 
 # Build the executable for the main program
-add_executable(ut_tamarin src/main.cc)
-target_link_libraries(ut_tamarin lib_uttamarin)
+add_executable(uttamarin src/main.cc)
+target_link_libraries(uttamarin lib_uttamarin)
