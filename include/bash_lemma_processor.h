@@ -36,7 +36,7 @@ class BashLemmaProcessor : public LemmaProcessor {
  public:
   BashLemmaProcessor(const std::string& proof_directory="",
                      const int timeout=600);
-  ~BashLemmaProcessor() = default;
+  virtual ~BashLemmaProcessor() = default;
 
  private:
 

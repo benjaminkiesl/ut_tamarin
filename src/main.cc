@@ -29,13 +29,16 @@
 #include "app.h"
 #include "bash_lemma_processor.h"
 #include "lemma_penetrator.h"
+#include "m4_theory_preprocessor.h"
 #include "terminator.h"
 #include "ut_tamarin_config.h"
 #include "verbose_lemma_processor.h"
 
+using namespace uttamarin;
+
 int main (int argc, char *argv[])
 {
-  uttamarin::CmdParameters parameters;
+  CmdParameters parameters;
 
   CLI::App cli{
     "UT Tamarin is a small tool that runs the Tamarin prover on selected\n"
@@ -80,24 +83,25 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(cli, argc, argv);
 
-  uttamarin::termination::registerSIGINTHandler();
+  termination::registerSIGINTHandler();
 
-  auto lemma_processor = std::make_unique<uttamarin::VerboseLemmaProcessor>(
-          std::make_unique<uttamarin::BashLemmaProcessor>(
+  auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
+          std::make_unique<BashLemmaProcessor>(
             parameters.proof_directory,
             parameters.timeout));
 
   auto config = parameters.config_file_path == "" ?
-          std::make_shared<uttamarin::UtTamarinConfig>() :
-          uttamarin::ParseUtTamarinConfigFile(parameters.config_file_path);
+          std::make_shared<UtTamarinConfig>() :
+          ParseUtTamarinConfigFile(parameters.config_file_path);
 
   if(parameters.penetration_lemma != ""){
-    uttamarin::LemmaPenetrator lemma_penetrator(std::move(lemma_processor));
+    LemmaPenetrator lemma_penetrator(std::move(lemma_processor));
     lemma_penetrator.SetTimeout(parameters.timeout);
     lemma_penetrator.PenetrateLemma(parameters.spthy_file_path,
                                     parameters.penetration_lemma);
   } else {
-    uttamarin::App app(std::move(lemma_processor), config);
+    auto theory_preprocessor = std::make_unique<M4TheoryPreprocessor>(config);
+    App app(std::move(lemma_processor), std::move(theory_preprocessor), config);
     app.RunTamarinOnLemmas(parameters, std::cout);
   }
   return 0;

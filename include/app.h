@@ -31,6 +31,7 @@
 namespace uttamarin {
 
 class LemmaProcessor;
+class TheoryPreprocessor;
 
 struct UtTamarinConfig;
 struct TamarinOutput;
@@ -52,7 +53,9 @@ class App {
 
  public:
   App(std::unique_ptr<LemmaProcessor> lemma_processor,
+      std::unique_ptr<TheoryPreprocessor> theory_preprocessor,
       std::shared_ptr<UtTamarinConfig> config);
+
   ~App();
 
   // Runs Tamarin on lemmas in the given spthy file. The actual choice of
@@ -106,26 +109,8 @@ class App {
                    int true_lemmas, int false_lemmas,
                    int unknown_lemmas, int overall_duration);
 
-  // Takes a string 'prefix' and a string 'original' and returns a command that
-  // tells the tool M4 to prepend 'prefix' to 'original'.
-  std::string AddPrefixViaM4(const std::string& prefix,
-                             const std::string& original);
-
-  // Takes as input the name of a lemma and a tamarin configuration and returns
-  // a list of commands for the tool M4. These commands tell M4 to rename
-  // certain fact symbols within the Tamarin theory file in order to apply
-  // custom heuristics.
-  std::vector<std::string> GetM4Commands(const std::string& lemma_name);
-
-  // Takes as input a Tamarin theory file and a lemma name and applies the
-  // custom heuristics defined in the Tamarin config. Returns the path of the
-  // temp file created by applying the custom heuristics to the Tamarin theory
-  // file.
-  std::string ApplyCustomHeuristics(const std::string& spthy_file_path,
-                                    const std::string& lemma_name);
-
-
   std::unique_ptr<LemmaProcessor> lemma_processor_;
+  std::unique_ptr<TheoryPreprocessor> theory_preprocessor_;
   std::shared_ptr<UtTamarinConfig> config_;
 };
 
