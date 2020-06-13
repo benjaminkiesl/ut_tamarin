@@ -23,7 +23,6 @@
 #include "terminator.h"
 
 #include <csignal>
-#include <cstdio>
 
 #include <iostream>
 #include <string>
@@ -34,7 +33,7 @@ namespace uttamarin::termination {
 
 // Holds the name of the tamarin process. This name is used for killing Tamarin 
 // when the program receives a SIGINT signal (sent by Ctrl+C).
-string tamarin_process = "tamarin-prover";
+const string tamarin_process = "tamarin-prover";
 
 void (*default_sigint_handler)(int signal);
 
@@ -47,14 +46,9 @@ void sigint_handler(int signal)
   std::raise(signal);
 }
 
-// Sets the global 'tamarin_process' name. This is needed for killing Tamarin
+// Registers a SIGINT handler. This is needed for killing Tamarin
 // in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const string& process_name){
-  if(process_name.find('/') != string::npos){
-    tamarin_process = process_name.substr(process_name.find_last_of('/')+1);
-  } else {
-    tamarin_process = process_name;
-  }
+void registerSIGINTHandler(){
   default_sigint_handler = std::signal(SIGINT, sigint_handler);
 }
 

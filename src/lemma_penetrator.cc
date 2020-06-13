@@ -31,10 +31,11 @@
 #include "tamarin_interface.h"
 #include "utility.h"
 
-using std::ifstream;
-using std::istream;
+using std::cout;
+using std::endl;
 using std::string;
 using std::unique_ptr;
+using std::vector;
 
 namespace uttamarin {
 
@@ -48,13 +49,49 @@ LemmaPenetrator::LemmaPenetrator(unique_ptr<LemmaProcessor> lemma_processor)
 
 LemmaPenetrator::~LemmaPenetrator() = default;
 
-ProverResult LemmaPenetrator::PenetrateLemma(const string &spthy_file_name,
-                                             const string &lemma_name) {
+void LemmaPenetrator::PenetrateLemma(const string &spthy_file_path,
+                                     const string &lemma_name) {
+  std::ostream& output_stream = cout; // TODO: make this a parameter
+  auto lemmas_in_file = ReadLemmaNamesFromSpthyFile(spthy_file_path);
 
+  string lemma = GetStringWithShortestEditDistance(lemmas_in_file,
+                                                   lemma_name);
+
+  cout << "Penetrating lemma '" << lemma << "' with a per-heuristic timeout of "
+    << ToSecondsString(timeout_) << "." << std::endl << std::endl;
+
+  vector<TamarinHeuristic> heuristics =
+          {TamarinHeuristic::S, TamarinHeuristic::s,
+           TamarinHeuristic::I, TamarinHeuristic::i,
+           TamarinHeuristic::C, TamarinHeuristic::c,
+           TamarinHeuristic::P, TamarinHeuristic::p};
+
+  for(auto heuristic : heuristics) {
+    lemma_processor_->SetHeuristic(heuristic);
+
+    auto output = lemma_processor_->ProcessLemma(spthy_file_path, lemma);
+
+    output_stream << to_string(output.result, &output_stream == &cout)
+                  << " (" << ToSecondsString(output.duration) << ")"
+                  << " heuristic=" << ToOutputString(heuristic) << endl;
+  }
 }
 
 void LemmaPenetrator::SetTimeout(int timeout_in_seconds) {
   timeout_ = timeout_in_seconds;
+}
+
+std::string LemmaPenetrator::ToOutputString(TamarinHeuristic heuristic) {
+  switch(heuristic){
+    case TamarinHeuristic::S: return "S";
+    case TamarinHeuristic::s: return "s";
+    case TamarinHeuristic::I: return "I";
+    case TamarinHeuristic::i: return "i";
+    case TamarinHeuristic::C: return "c";
+    case TamarinHeuristic::P: return "P";
+    case TamarinHeuristic::p: return "p";
+    default: return "unknown";
+  }
 }
 
 } // namespace uttamarin

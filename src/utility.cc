@@ -28,9 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "tamarin_config.h"
-#include "tamarin_interface.h"
-
 using std::string;
 using std::vector;
 
@@ -38,11 +35,6 @@ namespace uttamarin {
 
 string ToSecondsString(int duration) { 
   return std::to_string(duration) + " second" + (duration != 1 ? "s" : ""); 
-}
-
-void TrimLeft(string& line) {
-  line.erase(line.begin(), std::find_if(line.begin(), line.end(), 
-             [](int ch) { return !std::isspace(ch); })); 
 }
 
 // Computes the edit distance between the substring of A starting at a and the
@@ -66,6 +58,21 @@ int EditDistance(const string& A, const string B) {
   vector<vector<int>> dp(A.size(), vector<int>(B.size(), -1)); 
   return EditDistanceHelper(A, 0, B, 0, dp); 
 }
+
+string GetStringWithShortestEditDistance(const vector<string>& candidates,
+                                         const string& target) {
+  int min_edit_distance = std::numeric_limits<int>::max();
+  string closest_lemma = "";
+  for(auto lemma : candidates){
+    int edit_distance = EditDistance(target, lemma);
+    if(edit_distance < min_edit_distance) {
+      min_edit_distance = edit_distance;
+      closest_lemma = lemma;
+    }
+  }
+  return closest_lemma;
+}
+
 
 int ExecuteShellCommand(const string& cmd) { 
   auto start_time = std::chrono::high_resolution_clock::now();

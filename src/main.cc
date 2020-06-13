@@ -30,6 +30,7 @@
 #include "bash_lemma_processor.h"
 #include "lemma_penetrator.h"
 #include "terminator.h"
+#include "ut_tamarin_config.h"
 #include "verbose_lemma_processor.h"
 
 int main (int argc, char *argv[])
@@ -40,55 +41,55 @@ int main (int argc, char *argv[])
     "UT Tamarin is a small tool that runs the Tamarin prover on selected\n"
     "lemmas and outputs statistics." 
   };
-  
+
   parameters.spthy_file_path = "";
   cli.add_option("spthy_file", parameters.spthy_file_path,
                  "Path to a .spthy file containing a Tamarin theory."
-                )->required()->check(CLI::ExistingFile);
+  )->required()->check(CLI::ExistingFile);
+
+  parameters.abort_after_failure = true;
+  cli.add_flag("-a,--abort_after_failure",
+               parameters.abort_after_failure,
+               "Tells the tool to abort if Tamarin fails to prove a lemma.");
 
   parameters.config_file_path = "";
   cli.add_option("-c,--config_file", parameters.config_file_path,
                  "Configuration file for UT Tamarin."
-                )->check(CLI::ExistingFile);
+  )->check(CLI::ExistingFile);
 
   parameters.output_file_path = "";
   cli.add_option("-o,--output_file", parameters.output_file_path,
                  "File where UT Tamarin saves its output.");
 
+  parameters.proof_directory = "";
+  cli.add_option("-p, --proof_directory", parameters.proof_directory,
+                 "Directory where the proofs should be stored.");
+
+  parameters.penetration_lemma = "";
+  cli.add_option("--penetration_lemma", parameters.penetration_lemma,
+                 "Lemma to penetrate.");
+
   parameters.starting_lemma = "";
   cli.add_option("-s,--start", parameters.starting_lemma,
-                 "Name of the first lemma that should be verified."
-                );
+                 "Name of the first lemma that should be verified.");
 
-  parameters.tamarin_path = "tamarin-prover";
-  cli.add_option("--tamarin_path", parameters.tamarin_path,
-                 "Path to the Tamarin executable (default: tamarin-prover)."
-                );
-
-  parameters.proof_directory = "";
-  cli.add_option("--proof_directory", parameters.proof_directory,
-                 "Directory where the proofs should be stored."
-                );
-  
   parameters.timeout = 600;
   cli.add_option("-t,--timeout", parameters.timeout,
                  "Per-lemma timeout in seconds "
                  "(0 means no timeout, default: 600 seconds).");
 
-  parameters.abort_after_failure = true;
-  cli.add_flag("-a,--abort_after_failure", 
-               parameters.abort_after_failure,
-               "Tells the tool to abort if Tamarin fails to prove a lemma.");
-
   CLI11_PARSE(cli, argc, argv);
 
-  uttamarin::termination::registerSIGINTHandler(parameters.tamarin_path);
+  uttamarin::termination::registerSIGINTHandler();
 
   auto lemma_processor = std::make_unique<uttamarin::VerboseLemmaProcessor>(
           std::make_unique<uttamarin::BashLemmaProcessor>(
-            parameters.tamarin_path,
             parameters.proof_directory,
             parameters.timeout));
+
+  auto config = parameters.config_file_path == "" ?
+          std::make_shared<uttamarin::UtTamarinConfig>() :
+          uttamarin::ParseUtTamarinConfigFile(parameters.config_file_path);
 
   if(parameters.penetration_lemma != ""){
     uttamarin::LemmaPenetrator lemma_penetrator(std::move(lemma_processor));
@@ -96,7 +97,7 @@ int main (int argc, char *argv[])
     lemma_penetrator.PenetrateLemma(parameters.spthy_file_path,
                                     parameters.penetration_lemma);
   } else {
-    uttamarin::App app(std::move(lemma_processor));
+    uttamarin::App app(std::move(lemma_processor), config);
     app.RunTamarinOnLemmas(parameters, std::cout);
   }
   return 0;

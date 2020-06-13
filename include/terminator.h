@@ -32,7 +32,7 @@ void sigint_handler(int signal);
 
 // Sets the global 'tamarin_process' name. This is needed for killing Tamarin
 // in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const std::string& process_name);
+void registerSIGINTHandler();
 
 } // namespace uttamarin::terminator
 

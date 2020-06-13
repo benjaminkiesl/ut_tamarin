@@ -34,8 +34,7 @@ namespace uttamarin {
 
 class BashLemmaProcessor : public LemmaProcessor {
  public:
-  BashLemmaProcessor(const std::string& tamarin_path="tamarin-prover",
-                     const std::string& proof_directory="",
+  BashLemmaProcessor(const std::string& proof_directory="",
                      const int timeout=600);
   ~BashLemmaProcessor() = default;
 
@@ -55,18 +54,13 @@ class BashLemmaProcessor : public LemmaProcessor {
 
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
-  ProverResult ExtractResultForLemma(std::istream& stream_of_tamarin_output,
+  ProverResult ExtractResultForLemma(std::istream& tamarin_stream,
                                      const std::string& lemma_name);
-
-  // Takes as input a stream to output produced by Tamarin and moves the stream
-  // to the first line of the part where the results for lemmas are displayed.
-  void MoveTamarinStreamToLemmaNames(std::istream& tamarin_stream);
 
   // Takes as input a line of the Tamarin output (a line that shows the Tamarin
   // result for a particular lemma) and returns the name of the lemma.
-  std::string ExtractLemmaName(std::string tamarin_line);
+  std::string ExtractLemmaName(std::string line);
 
-  std::string tamarin_path_;
   std::string proof_directory_;
   int timeout_;
   TamarinHeuristic heuristic_;

@@ -24,6 +24,7 @@
 #define UT_TAMARIN_TAMARIN_INTERFACE_H_
 
 #include <string>
+#include <vector>
 
 namespace uttamarin {
 
@@ -44,6 +45,17 @@ std::string to_string(const ProverResult& prover_result,
 std::string to_string(const TamarinOutput& tamarin_output,
                       bool is_colorized=false);
 
+// Executes Tamarin with the given parameters and writes the needed output to
+// a temp file while relocating the other output to /dev/null.  Returns the
+// path to the resulting temp file.
+std::string RunTamarinAndWriteOutputToNewTempfile(
+        const std::string& spthy_file_path,
+        const std::string& tamarin_parameters="");
+
+// Takes as input a Tamarin theory file (".spthy") and returns a vector
+// containing all the names of the lemmas specified in the file.
+std::vector<std::string> ReadLemmaNamesFromSpthyFile(
+        const std::string& spthy_file_path);
 
 } // namespace uttamarin
 

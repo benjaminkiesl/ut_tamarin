@@ -28,11 +28,10 @@
 #include <string>
 #include <vector>
 
+#include "lemma_processor.h"
 #include "tamarin_interface.h"
 
 namespace uttamarin {
-
-class LemmaProcessor;
 
 // A LemmaPenetrator tries proving a lemma with various heuristics
 class LemmaPenetrator {
@@ -41,11 +40,14 @@ class LemmaPenetrator {
   LemmaPenetrator(std::unique_ptr<LemmaProcessor> lemma_processor);
   ~LemmaPenetrator();
 
-  ProverResult PenetrateLemma(const std::string& spthy_file_name,
-                              const std::string& lemma_name);
+  void PenetrateLemma(const std::string& spthy_file_path,
+                      const std::string& lemma_name);
 
   void SetTimeout(int timeout_in_seconds);
+
  private:
+  std::string ToOutputString(TamarinHeuristic heuristic);
+
   std::unique_ptr<LemmaProcessor> lemma_processor_;
   int timeout_;
 };

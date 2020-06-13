@@ -17,7 +17,7 @@ add_library(lib_uttamarin STATIC
   src/app.cc
   src/bash_lemma_processor.cc
   src/lemma_penetrator.cc
-  src/tamarin_config.cc
+  src/ut_tamarin_config.cc
   src/tamarin_interface.cc
   src/terminator.cc
   src/utility.cc

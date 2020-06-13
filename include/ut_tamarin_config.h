@@ -23,6 +23,7 @@
 #ifndef UT_TAMARIN_CONFIG_H_ 
 #define UT_TAMARIN_CONFIG_H_
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -39,13 +40,13 @@ struct FactAnnotations {
   bool ContainFact(const std::string& fact) const;
 };
 
-struct TamarinConfig { 
+struct UtTamarinConfig {
   std::vector<std::string> lemma_deny_list;
   std::vector<std::string> lemma_allow_list;
   FactAnnotations global_annotations; 
   std::unordered_map<std::string, FactAnnotations> lemma_annotations; 
   
-  // Returns true if the given fact 'fact' is annotaed locally for the given
+  // Returns true if the given fact 'fact' is annotated locally for the given
   // lemma 'lemma_name'. Here, a local annotation means that the scope of the 
   // annotation is only the lemma itself and not the whole Tamarin theory file.
   bool FactIsAnnotatedLocally(const std::string& fact, 
@@ -53,8 +54,9 @@ struct TamarinConfig {
 };
 
 // Takes as input the path of the Tamarin config file and returns an object
-// representing the configuration options deifned in the config file.
-TamarinConfig ParseTamarinConfigFile(const std::string& config_file_path);
+// representing the configuration options defined in the config file.
+std::shared_ptr<UtTamarinConfig> ParseUtTamarinConfigFile(
+        const std::string& config_file_path);
 
 // Gets the fact annotations from a JSON annotation.
 FactAnnotations GetFactAnnotations(nlohmann::json json_annotation);

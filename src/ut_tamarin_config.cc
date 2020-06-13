@@ -20,10 +20,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "tamarin_config.h"
+#include "ut_tamarin_config.h"
 
 #include <algorithm>
 #include <fstream>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -36,8 +37,9 @@ using json = nlohmann::json;
 
 namespace uttamarin {
 
-TamarinConfig ParseTamarinConfigFile(const string& config_file_path){
-  TamarinConfig tamarin_config;
+std::shared_ptr<UtTamarinConfig> ParseUtTamarinConfigFile(
+        const string& config_file_path){
+  auto ut_tamarin_config = std::make_shared<UtTamarinConfig>();
   json json_config;
 
   if(config_file_path != ""){
@@ -45,24 +47,24 @@ TamarinConfig ParseTamarinConfigFile(const string& config_file_path){
     config_file_stream >> json_config;
   }
 
-  tamarin_config.lemma_deny_list = json_config.count("lemma_deny_list") ?
+  ut_tamarin_config->lemma_deny_list = json_config.count("lemma_deny_list") ?
     json_config["lemma_deny_list"].get<vector<string>>() : vector<string>{};
 
-  tamarin_config.lemma_allow_list = json_config.count("lemma_allow_list") ?
+  ut_tamarin_config->lemma_allow_list = json_config.count("lemma_allow_list") ?
     json_config["lemma_allow_list"].get<vector<string>>() : vector<string>{};
 
   if(json_config.count("global_annotations")){
-    tamarin_config.global_annotations = 
+    ut_tamarin_config->global_annotations =
       GetFactAnnotations(json_config["global_annotations"]);
   } 
 
   for(auto lemma_annotation : json_config["lemma_annotations"]){
     auto lemma_name = lemma_annotation["lemma_name"].get<string>();
-    tamarin_config.lemma_annotations[lemma_name] = 
+    ut_tamarin_config->lemma_annotations[lemma_name] =
       GetFactAnnotations(lemma_annotation);
   }
 
-  return tamarin_config;
+  return ut_tamarin_config;
 }
 
 FactAnnotations GetFactAnnotations(json json_annotation){
@@ -82,8 +84,8 @@ FactAnnotations GetFactAnnotations(json json_annotation){
   return fact_annotations;
 }
 
-bool TamarinConfig::FactIsAnnotatedLocally(const string& fact, 
-                                           const string& lemma_name) const {
+bool UtTamarinConfig::FactIsAnnotatedLocally(const string& fact,
+                                             const string& lemma_name) const {
   if(lemma_annotations.count(lemma_name) == 0) return false;
   auto local_fact_annotations = lemma_annotations.at(lemma_name);
   return local_fact_annotations.ContainFact(fact);

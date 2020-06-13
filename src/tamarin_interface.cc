@@ -22,13 +22,18 @@
 
 #include "tamarin_interface.h"
 
+#include <fstream>
 #include <string>
+#include <vector>
 
 #include "utility.h"
 
 using std::string;
+using std::vector;
 
 namespace uttamarin {
+
+const string kTamarinTempfilePath = "/tmp/uttamarintemp.ut";
 
 string to_string(const ProverResult& prover_result, bool is_colorized) {
   string result_string = "";
@@ -52,6 +57,43 @@ string to_string(const TamarinOutput& tamarin_output,
   string formatted = to_string(tamarin_output.result, is_colorized);
   formatted += " (" + ToSecondsString(tamarin_output.duration) + ")";
   return formatted;
+}
+
+// Takes as input a line of the Tamarin output (a line that shows the Tamarin
+// result for a particular lemma) and returns the name of the lemma.
+string ExtractLemmaName(string line) {
+  line = line.substr(line.find_first_not_of(" \f\n\r\t\v"));
+  return line.substr(0, line.find(' '));
+}
+
+string RunTamarinAndWriteOutputToNewTempfile(const string& spthy_file_path,
+                                             const string& tamarin_parameters) {
+  ExecuteShellCommand("tamarin-prover " + tamarin_parameters +
+                      spthy_file_path + " 1> " + kTamarinTempfilePath +
+                      " 2> /dev/null");
+  return kTamarinTempfilePath;
+}
+
+vector<string> ReadLemmaNamesFromSpthyFile(const string& spthy_file_path) {
+  auto temp_file = RunTamarinAndWriteOutputToNewTempfile(spthy_file_path);
+
+  std::ifstream tamarin_stream {temp_file, std::ifstream::in};
+  vector<string> lemma_names;
+  string line;
+
+  // Move stream to begin of lemma names
+  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
+  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
+
+  // Read lemma names
+  while(std::getline(tamarin_stream, line) && line != "") {
+    lemma_names.push_back(ExtractLemmaName(line));
+  }
+
+  // Remove temp file
+  std::remove(temp_file.c_str());
+
+  return lemma_names;
 }
 
 } // namespace uttamarin

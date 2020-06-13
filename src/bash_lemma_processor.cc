@@ -22,6 +22,7 @@
 
 #include "bash_lemma_processor.h"
 
+#include <algorithm>
 #include <fstream>
 #include <string>
 
@@ -36,14 +37,11 @@ namespace uttamarin {
 
 const string kTempPath = "/tmp/uttamarintemp.ut";
 
-BashLemmaProcessor::BashLemmaProcessor(const string& tamarin_path,
-                                       const string& proof_directory,
+BashLemmaProcessor::BashLemmaProcessor(const string& proof_directory,
                                        const int timeout) :
-                                       tamarin_path_(tamarin_path),
                                        proof_directory_(proof_directory),
                                        timeout_(timeout),
                                        heuristic_(TamarinHeuristic::S){
-
 }
 
 TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
@@ -57,7 +55,7 @@ TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
                     lemma_name + ".spthy";
   }
 
-  cmd += tamarin_path_ + " --prove=" + lemma_name + " "
+  cmd += "tamarin-prover --prove=" + lemma_name + " "
          + tamarin_args + " " + spthy_file_path
          + " 1> " + kTempPath + " 2> /dev/null";
 
@@ -90,11 +88,16 @@ string BashLemmaProcessor::GetTamarinHeuristicArgument() {
 }
 
 ProverResult BashLemmaProcessor::ExtractResultForLemma(
-        istream& stream_of_tamarin_output,
+        istream& tamarin_stream,
         const string& lemma_name) {
   string line;
-  MoveTamarinStreamToLemmaNames(stream_of_tamarin_output);
-  while(getline(stream_of_tamarin_output, line)
+
+  // Move stream to begin of lemma results
+  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
+  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
+
+  // Move to line for the lemma with name equal to lemma_name
+  while(getline(tamarin_stream, line)
         && ExtractLemmaName(line) != lemma_name);
 
   if(line.find("falsified") != string::npos)
@@ -104,15 +107,9 @@ ProverResult BashLemmaProcessor::ExtractResultForLemma(
   return ProverResult::Unknown;
 }
 
-void BashLemmaProcessor::MoveTamarinStreamToLemmaNames(istream& tamarin_stream) {
-  string line;
-  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
-  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
-}
-
-string BashLemmaProcessor::ExtractLemmaName(string tamarin_line) {
-  TrimLeft(tamarin_line);
-  return tamarin_line.substr(0, tamarin_line.find(' '));
+string BashLemmaProcessor::ExtractLemmaName(string line) {
+  line = line.substr(line.find_first_not_of(" \f\n\r\t\v"));
+  return line.substr(0, line.find(' '));
 }
 
 } // namespace uttamarin

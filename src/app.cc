@@ -23,33 +23,26 @@
 #include "app.h"
 
 #include <algorithm>
-#include <chrono>
 #include <fstream>
-#include <future>
 #include <iostream>
 #include <memory>
-#include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "lemma_processor.h"
-#include "tamarin_config.h"
+#include "ut_tamarin_config.h"
 #include "tamarin_interface.h"
 #include "utility.h"
 
 using std::string;
 using std::vector;
 using std::unordered_map;
-using std::min;
-using std::numeric_limits;
 using std::cout;
 using std::cerr;
 using std::endl;
-using std::flush;
 using std::ifstream;
 using std::ofstream;
-using std::istream;
 using std::ostream;
 
 namespace uttamarin {
@@ -58,59 +51,15 @@ const string kTempfilePath = "/tmp/uttamarintemp.ut";
 const string kPreprocessedTempfilePath = "/tmp/preprocessed.spthy";
 const string kM4TempfilePath = "/tmp/temp.m4";
 
-
-App::App(std::unique_ptr<LemmaProcessor> lemma_processor) :
-  lemma_processor_(std::move(lemma_processor)) {
+App::App(std::unique_ptr<LemmaProcessor> lemma_processor,
+         std::shared_ptr<UtTamarinConfig> config) :
+  lemma_processor_(std::move(lemma_processor)),
+  config_(config) {
 
 }
 
 App::~App() {
   std::remove(kTempfilePath.c_str());
-}
-
-string App::RunTamarinAndWriteOutputToNewTempfile(
-                                    const string& tamarin_path,
-                                    const string& spthy_file_path,
-                                    const string& tamarin_parameters) {
-  ExecuteShellCommand(tamarin_path + " " + tamarin_parameters +
-       spthy_file_path + " 1> " + kTempfilePath + " 2> /dev/null");
-  return kTempfilePath;
-}
-
-string App::ExtractLemmaName(string tamarin_line) {
-  TrimLeft(tamarin_line);
-  return tamarin_line.substr(0, tamarin_line.find(' '));
-}
-
-vector<string> App::ReadLemmaNamesFromStream(istream& input_stream) {
-  vector<string> lemma_names;
-  string line;
-  while(std::getline(input_stream, line) && line != "") {
-    lemma_names.push_back(ExtractLemmaName(line));
-  }
-  return lemma_names;
-}
-
-vector<string> App::ReadLemmaNamesFromLemmaFile(const string& file_name) {
-  ifstream file_stream {file_name, ifstream::in};
-  return ReadLemmaNamesFromStream(file_stream);
-}
-
-void App::MoveTamarinStreamToLemmaNames(istream& tamarin_stream) {
-  string line;
-  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
-  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
-}
-
-vector<string> App::ReadLemmaNamesFromSpthyFile(const string& tamarin_path,
-                                                const string& spthy_file_path) {
-  auto temp_file = RunTamarinAndWriteOutputToNewTempfile(tamarin_path,
-                                                         spthy_file_path);
-  ifstream tamarin_stream {temp_file, ifstream::in};
-  MoveTamarinStreamToLemmaNames(tamarin_stream);
-  auto lemma_names = ReadLemmaNamesFromStream(tamarin_stream);
-  std::remove(temp_file.c_str());
-  return lemma_names;
 }
 
 vector<string> App::GetLemmasInAllowList(const vector<string>& all_lemmas,
@@ -147,16 +96,8 @@ vector<string> App::RemoveLemmasInDenyList(const vector<string>& all_lemmas,
 
 vector<string> App::RemoveLemmasBeforeStart(const vector<string>& all_lemmas, 
                                             const string& starting_lemma) {
-  int min_edit_distance = numeric_limits<int>::max();
-  auto it_start = all_lemmas.begin();
-  for(auto it = all_lemmas.begin();it != all_lemmas.end();++it) {
-    auto lemma = *it;
-    int edit_distance = EditDistance(starting_lemma, lemma);
-    if(edit_distance < min_edit_distance) {
-      min_edit_distance = edit_distance; 
-      it_start = it;
-    }
-  }
+  auto it_start = std::find(all_lemmas.begin(), all_lemmas.end(),
+          GetStringWithShortestEditDistance(all_lemmas, starting_lemma));
 
   vector<string> filtered_lemmas;
   if(it_start != all_lemmas.end()) {
@@ -170,12 +111,11 @@ vector<string> App::RemoveLemmasBeforeStart(const vector<string>& all_lemmas,
   return filtered_lemmas;
 }
 
-vector<string> App::GetNamesOfLemmasToVerify(const string& tamarin_path,
-                                             const string& spthy_file_path,
+vector<string> App::GetNamesOfLemmasToVerify(const string& spthy_file_path,
                                              const vector<string>& allow_list,
                                              const vector<string>& deny_list,
                                              const string& starting_lemma) {
-  auto lemmas = ReadLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
+  auto lemmas = ReadLemmaNamesFromSpthyFile(spthy_file_path);
   if(!allow_list.empty()) {
     lemmas = GetLemmasInAllowList(lemmas, allow_list);
   }
@@ -218,30 +158,29 @@ string App::AddPrefixViaM4(const string& prefix, const string& original) {
   return "define(" + original + ", " + prefix + original + "($*))";
 }
 
-vector<string> App::GetM4Commands(const string& lemma_name, 
-                                  const TamarinConfig& config) {
+vector<string> App::GetM4Commands(const string& lemma_name) {
   const string important_prefix = "F_";
   const string unimportant_prefix = "L_";
 
   vector<string> m4_commands;
 
-  for(string fact : config.global_annotations.important_facts) {
-    if(!config.FactIsAnnotatedLocally(fact, lemma_name)) {
+  for(string fact : config_->global_annotations.important_facts) {
+    if(!config_->FactIsAnnotatedLocally(fact, lemma_name)) {
       m4_commands.emplace_back(AddPrefixViaM4(important_prefix, fact));
     }
   }
 
-  for(string fact : config.global_annotations.unimportant_facts) {
-    if(!config.FactIsAnnotatedLocally(fact, lemma_name)) {
+  for(string fact : config_->global_annotations.unimportant_facts) {
+    if(!config_->FactIsAnnotatedLocally(fact, lemma_name)) {
       m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
     }
   }
 
-  if(config.lemma_annotations.count(lemma_name)) {
-    for(string fact : config.lemma_annotations.at(lemma_name).important_facts)
+  if(config_->lemma_annotations.count(lemma_name)) {
+    for(string fact : config_->lemma_annotations.at(lemma_name).important_facts)
       m4_commands.emplace_back(AddPrefixViaM4(important_prefix, fact));
 
-    for(string fact : config.lemma_annotations.at(lemma_name).unimportant_facts)
+    for(string fact : config_->lemma_annotations.at(lemma_name).unimportant_facts)
       m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
   }
 
@@ -249,10 +188,8 @@ vector<string> App::GetM4Commands(const string& lemma_name,
 }
 
 string App::ApplyCustomHeuristics(const string& spthy_file_path, 
-                             const string& lemma_name,
-                             const TamarinConfig& config,
-                             const CmdParameters& cmd_parameters) {
-  auto m4_commands = GetM4Commands(lemma_name, config);
+                                  const string& lemma_name) {
+  auto m4_commands = GetM4Commands(lemma_name);
 
   ofstream tempfile_m4{kM4TempfilePath};
 
@@ -279,22 +216,18 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
                              ostream& output_stream) {
   PrintHeader(output_stream, parameters);
 
-  auto config = ParseTamarinConfigFile(parameters.config_file_path);
-
-  auto lemma_names = GetNamesOfLemmasToVerify(parameters.tamarin_path,
-                                              parameters.spthy_file_path,
-                                              config.lemma_allow_list,
-                                              config.lemma_deny_list,
+  auto lemma_names = GetNamesOfLemmasToVerify(parameters.spthy_file_path,
+                                              config_->lemma_allow_list,
+                                              config_->lemma_deny_list,
                                               parameters.starting_lemma);
 
-  bool success = true; 
+  bool success = true;
 
-  unordered_map<ProverResult, int> count;
+  unordered_map<ProverResult, int> count_of;
   int overall_duration = 0;
   for(int i=0;i < lemma_names.size();i++) {
-    auto preprocessed_spthy_file = ApplyCustomHeuristics(
-                        parameters.spthy_file_path, lemma_names[i], 
-                        config, parameters);
+    auto preprocessed_spthy_file =
+            ApplyCustomHeuristics(parameters.spthy_file_path, lemma_names[i]);
 
     auto stats = lemma_processor_->ProcessLemma(preprocessed_spthy_file,
                                                 lemma_names[i]);
@@ -302,56 +235,19 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
                 lemma_names.size() << ") " <<
                 to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
-    count[stats.result]++;
-    std::remove(kTempfilePath.c_str());
+    count_of[stats.result]++;
+    std::remove(preprocessed_spthy_file.c_str());
     if(stats.result != ProverResult::True) {
       success = false;
       if(parameters.abort_after_failure) break;
     }
   }
 
-  PrintFooter(output_stream, count[ProverResult::True],
-              count[ProverResult::False], count[ProverResult::Unknown],
+  PrintFooter(output_stream, count_of[ProverResult::True],
+              count_of[ProverResult::False], count_of[ProverResult::Unknown],
               overall_duration);
 
   return success;
-}
-
-int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
-  auto lemmas_in_file = ReadLemmaNamesFromSpthyFile(p.tamarin_path, 
-                                                    p.spthy_file_path);
-  auto lemma_it = std::find_if(lemmas_in_file.begin(), lemmas_in_file.end(), 
-        [&p](const string& lemma) { 
-          return lemma.size() >= p.penetration_lemma.size() &&
-                 lemma.substr(0, p.penetration_lemma.size()) == 
-                 p.penetration_lemma;
-        });
-  if(lemma_it == lemmas_in_file.end()) {
-    cerr << "No lemma starting with '" << p.penetration_lemma << 
-      "' contained in file " << p.spthy_file_path << "." << endl;
-    return 1;
-  }
-
-  string penetration_lemma = *lemma_it;
-
-  output_stream << "Penetrating lemma '" << penetration_lemma << 
-    "' with a per-heuristic timeout of " << ToSecondsString(p.timeout) <<
-    "." << endl << endl;
-
-  vector<TamarinHeuristic> heuristics =
-          {TamarinHeuristic::S, TamarinHeuristic::C, TamarinHeuristic::I,
-           TamarinHeuristic::s, TamarinHeuristic::c, TamarinHeuristic::i,
-           TamarinHeuristic::P, TamarinHeuristic::p};
-  for(auto heuristic : heuristics) {
-//    output_stream << "Heuristic: " << heuristic << " " << flush; // TODO reimplement this
-    lemma_processor_->SetHeuristic(heuristic);
-    auto output = lemma_processor_->ProcessLemma(p.spthy_file_path,
-                                                 penetration_lemma);
-    output_stream << to_string(output.result, &output_stream == &cout) 
-      << " (" << ToSecondsString(output.duration) << ")" << endl;
-    if(output.result == ProverResult::True) break; 
-  }
-  return 0;
 }
 
 } // namespace uttamarin

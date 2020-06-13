@@ -28,7 +28,6 @@
 #include <utility>
 
 #include "tamarin_interface.h"
-#include "utility.h"
 
 using std::cout;
 using std::endl;

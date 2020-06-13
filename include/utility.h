@@ -34,11 +34,14 @@ struct TamarinOutput;
 // seconds"
 std::string ToSecondsString(int duration);
 
-// Trims white space from the left of the given string.
-void TrimLeft(std::string& line);
-
 // Computes the edit distance between two strings A and B
 int EditDistance(const std::string& A, const std::string B);
+
+// Takes a list of lemma names and a candidate name and returns the lemma
+// from the list whose name is closes to the candidate name.
+std::string GetStringWithShortestEditDistance(
+        const std::vector<std::string>& candidates,
+        const std::string& target);
 
 // Executes a shell command and returns the duration of the execution in
 // seconds.
