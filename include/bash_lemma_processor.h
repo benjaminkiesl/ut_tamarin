@@ -34,8 +34,7 @@ namespace uttamarin {
 
 class BashLemmaProcessor : public LemmaProcessor {
  public:
-  BashLemmaProcessor(const std::string& spthy_file_path,
-                     const std::string& tamarin_path="tamarin-prover",
+  BashLemmaProcessor(const std::string& tamarin_path="tamarin-prover",
                      const std::string& proof_directory="",
                      const int timeout=600);
   ~BashLemmaProcessor() = default;
@@ -45,7 +44,8 @@ class BashLemmaProcessor : public LemmaProcessor {
   // Takes as input a  lemma name and then runs Tamarin on the given lemma.
   // Returns some output/statistics (like Tamarin's result and the execution
   // duration).
-  virtual TamarinOutput DoProcessLemma(const std::string& lemma_name) override;
+  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_path,
+                                       const std::string& lemma_name) override;
 
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
@@ -60,7 +60,6 @@ class BashLemmaProcessor : public LemmaProcessor {
   // result for a particular lemma) and returns the name of the lemma.
   std::string ExtractLemmaName(std::string tamarin_line);
 
-  std::string spthy_file_path_;
   std::string tamarin_path_;
   std::string proof_directory_;
   int timeout_;

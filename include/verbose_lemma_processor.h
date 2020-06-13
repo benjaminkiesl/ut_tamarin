@@ -25,6 +25,7 @@
 
 #include "lemma_processor.h"
 
+#include <future>
 #include <istream>
 #include <memory>
 #include <string>
@@ -40,10 +41,11 @@ class VerboseLemmaProcessor : public LemmaProcessor {
 
  private:
 
-  // Takes as input a  lemma name and then runs Tamarin on the given lemma.
-  // Returns some output/statistics (like Tamarin's result and the execution
-  // duration). Additionally prints its statistics to cout.
-  virtual TamarinOutput DoProcessLemma(const std::string& lemma_name) override;
+  // Takes as input a tamarin file path and a lemma name and then runs Tamarin
+  // on the given lemma. Returns some output/statistics (like Tamarin's result
+  // and the execution duration). Additionally prints its statistics to cout.
+  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
+                                       const std::string& lemma_name) override;
 
   std::unique_ptr<LemmaProcessor> decoratee_;
 };

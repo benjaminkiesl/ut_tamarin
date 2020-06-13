@@ -22,11 +22,13 @@
 
 #include "verbose_lemma_processor.h"
 
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <utility>
 
 #include "tamarin_interface.h"
+#include "utility.h"
 
 using std::cout;
 using std::endl;
@@ -40,9 +42,20 @@ VerboseLemmaProcessor::VerboseLemmaProcessor(
                                        decoratee_(std::move(decoratee)) {
 }
 
-TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& lemma_name) {
-  cout << "Decorator called for lemma " << lemma_name << endl;
-  return decoratee_->ProcessLemma(lemma_name);
+TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
+                                                    const string& lemma_name) {
+  auto start_time = std::chrono::high_resolution_clock::now();
+  std::future<TamarinOutput> f = std::async(&LemmaProcessor::ProcessLemma,
+                                             decoratee_.get(),
+                                             spthy_file_path,
+                                             lemma_name);
+  do{
+    auto seconds = DurationToString(
+      std::chrono::duration_cast<std::chrono::seconds>(
+         std::chrono::high_resolution_clock::now() - start_time).count());
+    cout << "\r" << lemma_name << " " << seconds << " " << std::flush;
+  } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
+  return f.get();
 }
 
 } // namespace uttamarin

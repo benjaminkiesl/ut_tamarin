@@ -83,7 +83,6 @@ int main (int argc, char *argv[])
 
   auto lemma_processor = std::make_unique<uttamarin::VerboseLemmaProcessor>(
           std::make_unique<uttamarin::BashLemmaProcessor>(
-            parameters.spthy_file_path,
             parameters.tamarin_path,
             parameters.proof_directory,
             parameters.timeout));

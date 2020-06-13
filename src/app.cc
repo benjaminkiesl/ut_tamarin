@@ -281,24 +281,11 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
                         parameters.spthy_file_path, lemma_names[i], 
                         config, parameters);
 
-    auto line = lemma_names[i] + " (" + std::to_string(i+1) + "/" + 
-                std::to_string(lemma_names.size()) + ") ";
-    // output_stream << line << "  " << flush;
-    cout << line << "  " << flush;
-
-    auto start_time = std::chrono::high_resolution_clock::now();
-    std::future<TamarinOutput> f = std::async(&LemmaProcessor::ProcessLemma,
-                                              lemma_processor_.get(),
-                                              lemma_names[i]);
-    do{
-      auto seconds = DurationToString(
-        std::chrono::duration_cast<std::chrono::seconds>(
-           std::chrono::high_resolution_clock::now() - start_time).count());
-      cout << "\r" << line << seconds << " " << std::flush;
-    } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
-    auto stats = f.get();
-    output_stream << "\r" << line << 
-      to_string(stats, &output_stream == &cout) << endl;
+    auto stats = lemma_processor_->ProcessLemma(preprocessed_spthy_file,
+                                                lemma_names[i]);
+    output_stream << "\r" << lemma_names[i] << " (" << (i+1) << "/" <<
+                lemma_names.size() << ") " <<
+                to_string(stats, &output_stream == &cout) << endl;
     overall_duration += stats.duration;
     count[stats.result]++;
     std::remove(kTempfilePath.c_str());
@@ -307,6 +294,7 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
       if(parameters.abort_after_failure) break;
     }
   }
+
   output_stream << endl << "Summary: " << endl;
   output_stream << to_string(ProverResult::True) << ": " <<
     count[ProverResult::True] << ", " << to_string(ProverResult::False) << ": "
@@ -346,7 +334,8 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
 //    auto output = ProcessTamarinLemma(penetration_lemma, p.tamarin_path, p,
 //                                      "--heuristic=" + heuristic);
 // TODO: Call of lemma processor ignores tamarin args at the moment.
-    auto output = lemma_processor_->ProcessLemma(penetration_lemma);
+    auto output = lemma_processor_->ProcessLemma(p.spthy_file_path,
+                                                 penetration_lemma);
     output_stream << to_string(output.result, &output_stream == &cout) 
       << " (" << ToSecondsString(output.duration) << ")" << endl;
     if(output.result == ProverResult::True) break; 

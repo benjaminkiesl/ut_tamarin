@@ -36,18 +36,17 @@ namespace uttamarin {
 
 const string kTempPath = "/tmp/uttamarintemp.ut";
 
-BashLemmaProcessor::BashLemmaProcessor(const string& spthy_file_path,
-                                       const string& tamarin_path,
+BashLemmaProcessor::BashLemmaProcessor(const string& tamarin_path,
                                        const string& proof_directory,
                                        const int timeout) :
-                                       spthy_file_path_(spthy_file_path),
                                        tamarin_path_(tamarin_path),
                                        proof_directory_(proof_directory),
                                        timeout_(timeout) {
 
 }
 
-TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& lemma_name) {
+TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
+                                                 const string& lemma_name) {
   string cmd = "timeout " + std::to_string(timeout_) + " ";
   string tamarin_args = "";
 
@@ -57,7 +56,7 @@ TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& lemma_name) {
   }
 
   cmd += tamarin_path_ + " --prove=" + lemma_name + " "
-         + tamarin_args + " " + spthy_file_path_
+         + tamarin_args + " " + spthy_file_path
          + " 1> " + kTempPath + " 2> /dev/null";
 
   TamarinOutput tamarin_output;

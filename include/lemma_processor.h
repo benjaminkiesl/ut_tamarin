@@ -36,12 +36,14 @@ class LemmaProcessor {
   // Takes as input a  lemma name and then runs Tamarin on the given lemma.
   // Returns some output/statistics (like Tamarin's result and the execution
   // duration).
-  TamarinOutput ProcessLemma(const std::string& lemma_name) {
-    DoProcessLemma(lemma_name);
+  TamarinOutput ProcessLemma(const std::string& spthy_file_name,
+                             const std::string& lemma_name) {
+    DoProcessLemma(spthy_file_name, lemma_name);
   }
 
  private:
-  virtual TamarinOutput DoProcessLemma(const std::string& lemma_name) = 0;
+  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
+                                       const std::string& lemma_name) = 0;
 
 };
 
