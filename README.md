@@ -52,11 +52,11 @@ The following is a sample JSON configuration for UT Tamarin that should be self-
 
 ```
 {
+	"lemma_allow_list": [],
 	"lemma_deny_list": [ 
-		"frist_denied_lemma",
+		"first_denied_lemma",
 		"second_denied_lemma"
 	],
-	"lemma_allow_list": [],
 	"global_annotations": {
 		"important_facts": ["NewFact", "OtherFact"],
 		"unimportant_facts": ["SomeUnimportantFact"],
