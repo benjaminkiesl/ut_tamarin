@@ -109,8 +109,8 @@ void App::PrintHeader(ostream& output_stream, const CmdParameters& parameters) {
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
   }
 
-  output_stream << "Tamarin Tests for file '" << file_name << "':" << endl;
-  output_stream << "Timeout: " << (parameters.timeout <= 0 ? "no timeout" :
+  output_stream << "Tamarin Tests for file '" << file_name << "':" << endl
+    << "Timeout: " << (parameters.timeout <= 0 ? "no timeout" :
     (std::to_string(parameters.timeout) + " second" +
     (parameters.timeout > 1 ? "s" : ""))) << " per lemma" << endl << endl;
 }
@@ -118,14 +118,13 @@ void App::PrintHeader(ostream& output_stream, const CmdParameters& parameters) {
 void App::PrintFooter(ostream& output_stream,
                       int true_lemmas, int false_lemmas,
                       int unknown_lemmas, int overall_duration) {
-  output_stream << endl << "Summary: " << endl;
-  output_stream << to_string(ProverResult::True) << ": " <<
-                true_lemmas << ", " << to_string(ProverResult::False) << ": "
-                << false_lemmas << ", " << to_string(ProverResult::Unknown)
-                << ": " << unknown_lemmas << endl;
-
-  output_stream << "Overall duration: " << ToSecondsString(overall_duration)
-                << endl;
+  output_stream << endl
+    << "Summary: " << endl
+    << to_string(ProverResult::True) << ": " << true_lemmas
+    << ", " << to_string(ProverResult::False) << ": " << false_lemmas
+    << ", " << to_string(ProverResult::Unknown) << ": " << unknown_lemmas
+    << endl
+    << "Overall duration: " << ToSecondsString(overall_duration) << endl;
 }
 
 vector<string> App::GetLemmasInAllowList(const vector<string>& all_lemmas,

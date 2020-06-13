@@ -66,6 +66,16 @@ class App {
 
  private:
 
+  // Prints the header for the Tamarin output based on the given command line
+  // parameters. The header is printed to the given ostream output_stream.
+  void PrintHeader(std::ostream& output_stream, const CmdParameters& parameters);
+
+  // Prints the footer for the Tamarin output based on the given command line
+  // parameters. The header is printed to the given ostream output_stream.
+  void PrintFooter(std::ostream& output_stream,
+                   int true_lemmas, int false_lemmas,
+                   int unknown_lemmas, int overall_duration);
+
   // Takes as input two vectors of lemmas (the initial lemmas and the
   // "allow list", respectively) and removes from the initial lemmas all lemmas
   // that do not occur in the allow list.
@@ -98,16 +108,6 @@ class App {
           const std::vector<std::string>& allow_list,
           const std::vector<std::string>& deny_list,
           const std::string& starting_lemma = "");
-
-  // Prints the header for the Tamarin output based on the given command line
-  // parameters. The header is printed to the given ostream output_stream.
-  void PrintHeader(std::ostream& output_stream, const CmdParameters& parameters);
-
-  // Prints the footer for the Tamarin output based on the given command line
-  // parameters. The header is printed to the given ostream output_stream.
-  void PrintFooter(std::ostream& output_stream,
-                   int true_lemmas, int false_lemmas,
-                   int unknown_lemmas, int overall_duration);
 
   std::unique_ptr<LemmaProcessor> lemma_processor_;
   std::unique_ptr<TheoryPreprocessor> theory_preprocessor_;
