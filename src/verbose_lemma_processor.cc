@@ -20,31 +20,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
-#define UT_TAMARIN_LEMMA_PROCESSOR_H_
+#include "verbose_lemma_processor.h"
 
-#include <string>
+#include <iostream>
+#include <memory>
+#include <utility>
 
 #include "tamarin_interface.h"
 
+using std::cout;
+using std::endl;
+using std::string;
+using std::unique_ptr;
+
 namespace uttamarin {
 
-class LemmaProcessor {
- public:
-  virtual ~LemmaProcessor() = default;
+VerboseLemmaProcessor::VerboseLemmaProcessor(
+        unique_ptr<LemmaProcessor> decoratee) :
+                                       decoratee_(std::move(decoratee)) {
+}
 
-  // Takes as input a  lemma name and then runs Tamarin on the given lemma.
-  // Returns some output/statistics (like Tamarin's result and the execution
-  // duration).
-  TamarinOutput ProcessLemma(const std::string& lemma_name) {
-    DoProcessLemma(lemma_name);
-  }
-
- private:
-  virtual TamarinOutput DoProcessLemma(const std::string& lemma_name) = 0;
-
-};
+TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& lemma_name) {
+  cout << "Decorator called for lemma " << lemma_name << endl;
+  return decoratee_->ProcessLemma(lemma_name);
+}
 
 } // namespace uttamarin
-
-#endif

@@ -29,6 +29,7 @@
 #include "app.h"
 #include "bash_lemma_processor.h"
 #include "terminator.h"
+#include "verbose_lemma_processor.h"
 
 int main (int argc, char *argv[])
 {
@@ -80,11 +81,12 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(cli, argc, argv);
 
-  auto lemma_processor = std::make_unique<uttamarin::BashLemmaProcessor>(
-          parameters.spthy_file_path,
-          parameters.tamarin_path,
-          parameters.proof_directory,
-          parameters.timeout);
+  auto lemma_processor = std::make_unique<uttamarin::VerboseLemmaProcessor>(
+          std::make_unique<uttamarin::BashLemmaProcessor>(
+            parameters.spthy_file_path,
+            parameters.tamarin_path,
+            parameters.proof_directory,
+            parameters.timeout));
 
   uttamarin::App app(std::move(lemma_processor));
   

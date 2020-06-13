@@ -19,6 +19,7 @@ add_library(lib_uttamarin STATIC
   src/terminator.cc
   src/utility.cc
   src/bash_lemma_processor.cc
+  src/verbose_lemma_processor.cc
   )
 set_target_properties(lib_uttamarin PROPERTIES OUTPUT_NAME uttamarin)
 

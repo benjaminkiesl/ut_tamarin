@@ -75,36 +75,6 @@ string App::RunTamarinAndWriteOutputToNewTempfile(
   return kTempfilePath;
 }
 
-TamarinOutput App::ProcessTamarinLemma(const string& lemma_name,
-                                       const string& spthy_file_path,
-                                       const CmdParameters& parameters,
-                                       string tamarin_args) {
-  /*string cmd = "";
-  if(parameters.timeout > 0)
-    cmd += "timeout " + std::to_string(parameters.timeout) + " ";
-
-  if(parameters.proof_directory != "") {
-    tamarin_args += " --output=" + parameters.proof_directory + "/" +
-                    lemma_name + ".spthy";
-  }
-
-  cmd += parameters.tamarin_path + " --prove=" + lemma_name + " "
-         + tamarin_args + " " + spthy_file_path
-         + " 1> " + kTempfilePath + " 2> /dev/null";
-
-  TamarinOutput tamarin_output;
-  tamarin_output.duration = ExecuteShellCommand(cmd);
-
-  ifstream file_stream {kTempfilePath, ifstream::in};
-  tamarin_output.result = ExtractResultForLemma(file_stream, lemma_name);
-
-  std::remove(kTempfilePath.c_str());
-
-  return tamarin_output;*/
-  return lemma_processor_->ProcessLemma(lemma_name);
-}
-
-
 string App::ExtractLemmaName(string tamarin_line) {
   TrimLeft(tamarin_line);
   return tamarin_line.substr(0, tamarin_line.find(' '));
@@ -139,20 +109,6 @@ vector<string> App::ReadLemmaNamesFromSpthyFile(const string& tamarin_path,
   auto lemma_names = ReadLemmaNamesFromStream(tamarin_stream);
   std::remove(temp_file.c_str());
   return lemma_names;
-}
-
-ProverResult App::ExtractResultForLemma(istream& stream_of_tamarin_output,
-                                        const string& lemma_name) {
-  string line;
-  MoveTamarinStreamToLemmaNames(stream_of_tamarin_output);
-  while(getline(stream_of_tamarin_output, line) 
-        && ExtractLemmaName(line) != lemma_name);
-
-  if(line.find("falsified") != string::npos)
-    return ProverResult::False;
-  else if(line.find("verified") != string::npos)
-    return ProverResult::True;
-  return ProverResult::Unknown;
 }
 
 vector<string> App::GetLemmasInWhitelist(const vector<string>& all_lemmas,
@@ -331,11 +287,9 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
     cout << line << "  " << flush;
 
     auto start_time = std::chrono::high_resolution_clock::now();
-    std::future<TamarinOutput> f = std::async(&App::ProcessTamarinLemma, 
-                                              this,
-                                              lemma_names[i],
-                                              preprocessed_spthy_file,
-                                              parameters, "");
+    std::future<TamarinOutput> f = std::async(&LemmaProcessor::ProcessLemma,
+                                              lemma_processor_.get(),
+                                              lemma_names[i]);
     do{
       auto seconds = DurationToString(
         std::chrono::duration_cast<std::chrono::seconds>(
@@ -389,8 +343,10 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
   vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
   for(auto heuristic : heuristics) {
     output_stream << "Heuristic: " << heuristic << " " << flush;
-    auto output = ProcessTamarinLemma(penetration_lemma, p.tamarin_path, p,
-                                      "--heuristic=" + heuristic);
+//    auto output = ProcessTamarinLemma(penetration_lemma, p.tamarin_path, p,
+//                                      "--heuristic=" + heuristic);
+// TODO: Call of lemma processor ignores tamarin args at the moment.
+    auto output = lemma_processor_->ProcessLemma(penetration_lemma);
     output_stream << to_string(output.result, &output_stream == &cout) 
       << " (" << ToSecondsString(output.duration) << ")" << endl;
     if(output.result == ProverResult::True) break; 

@@ -47,7 +47,7 @@ BashLemmaProcessor::BashLemmaProcessor(const string& spthy_file_path,
 
 }
 
-TamarinOutput BashLemmaProcessor::ProcessLemma(const string& lemma_name) {
+TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& lemma_name) {
   string cmd = "timeout " + std::to_string(timeout_) + " ";
   string tamarin_args = "";
 

@@ -38,13 +38,14 @@ class BashLemmaProcessor : public LemmaProcessor {
                      const std::string& tamarin_path="tamarin-prover",
                      const std::string& proof_directory="",
                      const int timeout=600);
-
-  // Takes as input a  lemma name, the command line parameters, and dedicated
-  // arguments for Tamarin and then runs Tamarin on the given lemma. Returns
-  // some output/statistics (like Tamarin's result and the execution duration).
-  virtual TamarinOutput ProcessLemma(const std::string& lemma_name);
+  ~BashLemmaProcessor() = default;
 
  private:
+
+  // Takes as input a  lemma name and then runs Tamarin on the given lemma.
+  // Returns some output/statistics (like Tamarin's result and the execution
+  // duration).
+  virtual TamarinOutput DoProcessLemma(const std::string& lemma_name) override;
 
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
