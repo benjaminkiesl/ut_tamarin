@@ -138,6 +138,12 @@ class App {
   void PrintHeader(const CmdParameters& parameters, 
                    std::ostream& output_stream);
 
+  // Prints the footer for the Tamarin output based on the given command line
+  // parameters. The header is printed to the given ostream output_stream.
+  void PrintFooter(std::ostream& output_stream,
+                   int true_lemmas, int false_lemmas,
+                   int unknown_lemmas, int overall_duration);
+
   // Takes a string 'prefix' and a string 'original' and returns a command that
   // tells the tool M4 to prepend 'prefix' to 'original'
   std::string AddPrefixViaM4(const std::string& prefix,

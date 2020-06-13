@@ -198,6 +198,20 @@ void App::PrintHeader(const CmdParameters& parameters, ostream& output_stream) {
                     << endl;
 }
 
+void App::PrintFooter(ostream& output_stream,
+                      int true_lemmas, int false_lemmas,
+                      int unknown_lemmas, int overall_duration) {
+
+  output_stream << endl << "Summary: " << endl;
+  output_stream << to_string(ProverResult::True) << ": " <<
+                true_lemmas << ", " << to_string(ProverResult::False) << ": "
+                << false_lemmas << ", " << to_string(ProverResult::Unknown)
+                << ": " << unknown_lemmas << endl;
+
+  output_stream << "Overall duration: " << ToSecondsString(overall_duration)
+                << endl;
+}
+
 string App::AddPrefixViaM4(const string& prefix, const string& original) {
   return "define(" + original + ", " + prefix + original + "($*))";
 }
@@ -295,14 +309,9 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
     }
   }
 
-  output_stream << endl << "Summary: " << endl;
-  output_stream << to_string(ProverResult::True) << ": " <<
-    count[ProverResult::True] << ", " << to_string(ProverResult::False) << ": "
-    << count[ProverResult::False] << ", " << to_string(ProverResult::Unknown)
-    << ": " << count[ProverResult::Unknown] << endl;
-
-  output_stream << "Overall duration: " << ToSecondsString(overall_duration) 
-   << endl;
+  PrintFooter(output_stream, count[ProverResult::True],
+              count[ProverResult::False], count[ProverResult::Unknown],
+              overall_duration);
 
   return success;
 }
