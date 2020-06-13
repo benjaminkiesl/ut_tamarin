@@ -47,10 +47,6 @@ using std::vector;
 
 namespace uttamarin {
 
-const string kTempfilePath = "/tmp/uttamarintemp.ut";
-const string kPreprocessedTempfilePath = "/tmp/preprocessed.spthy";
-const string kM4TempfilePath = "/tmp/temp.m4";
-
 App::App(unique_ptr<LemmaProcessor> lemma_processor,
          unique_ptr<TheoryPreprocessor> theory_preprocessor,
          shared_ptr<UtTamarinConfig> config) :
@@ -60,9 +56,7 @@ App::App(unique_ptr<LemmaProcessor> lemma_processor,
 
 }
 
-App::~App() {
-  std::remove(kTempfilePath.c_str());
-}
+App::~App() = default;
 
 bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
                              ostream& output_stream) {
