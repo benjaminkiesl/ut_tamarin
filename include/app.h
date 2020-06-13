@@ -100,18 +100,18 @@ class App {
                                      const std::string& lemma_name);
 
   // Takes as input two vectors of lemmas (the initial lemmas and the
-  // "whitelist", respectively) and removes from the initial lemmas all lemmas
-  // that do not occur in the whitelist.
-  std::vector<std::string> GetLemmasInWhitelist(
+  // "allow list", respectively) and removes from the initial lemmas all lemmas
+  // that do not occur in the allow list.
+  std::vector<std::string> GetLemmasInAllowList(
       const std::vector<std::string>& all_lemmas, 
-      const std::vector<std::string>& whitelist);
+      const std::vector<std::string>& allow_list);
 
   // Takes as input two vectors of lemmas (the initial lemmas and the
-  // "blacklist", respectively) and removes from the initial lemmas all lemmas
-  // that occur in the blacklist.
-  std::vector<std::string> RemoveLemmasInBlacklist(
+  // deny list, respectively) and removes from the initial lemmas all lemmas
+  // that occur in the deny list.
+  std::vector<std::string> RemoveLemmasInDenyList(
       const std::vector<std::string>& all_lemmas,
-      const std::vector<std::string>& blacklist);
+      const std::vector<std::string>& deny_list);
 
   // Takes as input a vector of lemmas and a lemma name. Removes from the
   // vector all lemmas that occur before the lemma with the given name (in
@@ -129,14 +129,13 @@ class App {
   std::vector<std::string> GetNamesOfLemmasToVerify(
       const std::string& tamarin_path, 
       const std::string& spthy_file_path, 
-      const std::vector<std::string>& whitelist, 
-      const std::vector<std::string>& blacklist, 
+      const std::vector<std::string>& allow_list,
+      const std::vector<std::string>& deny_list,
       const std::string& starting_lemma = "");
 
   // Prints the header for the Tamarin output based on the given command line
   // parameters. The header is printed to the given ostream output_stream.
-  void PrintHeader(const CmdParameters& parameters, 
-                   std::ostream& output_stream);
+  void PrintHeader(std::ostream& output_stream, const CmdParameters& parameters);
 
   // Prints the footer for the Tamarin output based on the given command line
   // parameters. The header is printed to the given ostream output_stream.
@@ -174,9 +173,6 @@ class App {
   // Runs Tamarin on the given lemma, trying out all different heuristics until
   // either Tamarin succeeds or all strategies reach a timeout.
   int PenetrateLemma(const CmdParameters& p, std::ostream& output_stream);
-
-  // Returns the path to the main temp file created by UT Tamarin.
-  std::string GetTempfilePath();
 
  private:
   std::unique_ptr<LemmaProcessor> lemma_processor_;

@@ -30,22 +30,9 @@ namespace uttamarin {
 
 struct TamarinOutput;
 
-enum class ProverResult;
-
 // Takes a duration in seconds and converts it into a string saying "duration
 // seconds"
 std::string ToSecondsString(int duration);
-
-// Converts a given ProverResult to a string. If the parameter 'is_colorized'
-// is true, then the string is colored using color code for the bash
-std::string to_string(const ProverResult& prover_result, 
-                      bool is_colorized=false);
-
-std::string to_string(const TamarinOutput& tamarin_output, 
-                      bool is_colorized=false);
-
-// Takes a duration in seconds and converts it into a string of the form MM:SS
-std::string DurationToString(int seconds);
 
 // Trims white space from the left of the given string.
 void TrimLeft(std::string& line);

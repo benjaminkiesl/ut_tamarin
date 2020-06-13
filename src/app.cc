@@ -64,7 +64,9 @@ App::App(std::unique_ptr<LemmaProcessor> lemma_processor) :
 
 }
 
-App::~App() = default;
+App::~App() {
+  std::remove(kTempfilePath.c_str());
+}
 
 string App::RunTamarinAndWriteOutputToNewTempfile(
                                     const string& tamarin_path,
@@ -111,9 +113,9 @@ vector<string> App::ReadLemmaNamesFromSpthyFile(const string& tamarin_path,
   return lemma_names;
 }
 
-vector<string> App::GetLemmasInWhitelist(const vector<string>& all_lemmas,
-                                         const vector<string>& whitelist) {
-  for(auto lemma_name : whitelist) {
+vector<string> App::GetLemmasInAllowList(const vector<string>& all_lemmas,
+                                         const vector<string>& allow_list) {
+  for(auto lemma_name : allow_list) {
     if(std::find(all_lemmas.begin(), all_lemmas.end(), lemma_name)
        == all_lemmas.end()) {
       cerr << "Warning: lemma '" << lemma_name << "' is not declared in " <<
@@ -123,21 +125,21 @@ vector<string> App::GetLemmasInWhitelist(const vector<string>& all_lemmas,
   auto filtered_lemmas = all_lemmas;
   filtered_lemmas.erase(
       std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
-      [&whitelist](const string& lemma_name) {
-        return std::find(whitelist.begin(), whitelist.end(), lemma_name) 
-        == whitelist.end();
+      [&allow_list](const string& lemma_name) {
+        return std::find(allow_list.begin(), allow_list.end(), lemma_name)
+               == allow_list.end();
       }), filtered_lemmas.end());
   return filtered_lemmas;
 }
 
-vector<string> App::RemoveLemmasInBlacklist(const vector<string>& all_lemmas, 
-                                            const vector<string>& blacklist) {
+vector<string> App::RemoveLemmasInDenyList(const vector<string>& all_lemmas,
+                                           const vector<string>& deny_list) {
   auto filtered_lemmas = all_lemmas;
   filtered_lemmas.erase(
       std::remove_if(filtered_lemmas.begin(), filtered_lemmas.end(),
       [&](const string& lemma_name) { 
-        return std::find(blacklist.begin(), blacklist.end(), lemma_name) 
-               != blacklist.end();
+        return std::find(deny_list.begin(), deny_list.end(), lemma_name)
+               != deny_list.end();
       }),
       filtered_lemmas.end());
   return filtered_lemmas;
@@ -170,15 +172,15 @@ vector<string> App::RemoveLemmasBeforeStart(const vector<string>& all_lemmas,
 
 vector<string> App::GetNamesOfLemmasToVerify(const string& tamarin_path,
                                              const string& spthy_file_path,
-                                             const vector<string>& whitelist,
-                                             const vector<string>& blacklist,
+                                             const vector<string>& allow_list,
+                                             const vector<string>& deny_list,
                                              const string& starting_lemma) {
   auto lemmas = ReadLemmaNamesFromSpthyFile(tamarin_path, spthy_file_path);
-  if(!whitelist.empty()) {
-    lemmas = GetLemmasInWhitelist(lemmas, whitelist);
+  if(!allow_list.empty()) {
+    lemmas = GetLemmasInAllowList(lemmas, allow_list);
   }
-  if(!blacklist.empty()) {
-    lemmas = RemoveLemmasInBlacklist(lemmas, blacklist); 
+  if(!deny_list.empty()) {
+    lemmas = RemoveLemmasInDenyList(lemmas, deny_list);
   }
   if(starting_lemma != "") {
     lemmas = RemoveLemmasBeforeStart(lemmas, starting_lemma);
@@ -186,7 +188,7 @@ vector<string> App::GetNamesOfLemmasToVerify(const string& tamarin_path,
   return lemmas;
 }
 
-void App::PrintHeader(const CmdParameters& parameters, ostream& output_stream) {
+void App::PrintHeader(ostream& output_stream, const CmdParameters& parameters) {
   auto file_name = parameters.spthy_file_path;
   if(file_name.find('/') != string::npos)
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
@@ -195,7 +197,7 @@ void App::PrintHeader(const CmdParameters& parameters, ostream& output_stream) {
   output_stream << "Timeout: " << (parameters.timeout <= 0 ? "no timeout" : 
                    (std::to_string(parameters.timeout) + " second" + 
                    (parameters.timeout > 1 ? "s" : ""))) << " per lemma" 
-                    << endl;
+                    << endl << endl;
 }
 
 void App::PrintFooter(ostream& output_stream,
@@ -275,16 +277,15 @@ string App::ApplyCustomHeuristics(const string& spthy_file_path,
 
 bool App::RunTamarinOnLemmas(const CmdParameters& parameters, 
                              ostream& output_stream) {
-  PrintHeader(parameters, output_stream);
+  PrintHeader(output_stream, parameters);
 
   auto config = ParseTamarinConfigFile(parameters.config_file_path);
 
   auto lemma_names = GetNamesOfLemmasToVerify(parameters.tamarin_path,
                                               parameters.spthy_file_path,
-                                              config.lemma_whitelist,
-                                              config.lemma_blacklist,
+                                              config.lemma_allow_list,
+                                              config.lemma_deny_list,
                                               parameters.starting_lemma);
-  output_stream << endl;
 
   bool success = true; 
 
@@ -337,12 +338,13 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
     "' with a per-heuristic timeout of " << ToSecondsString(p.timeout) <<
     "." << endl << endl;
 
-  vector<string> heuristics = {"S", "C", "I", "s", "c", "i", "P", "p"};
+  vector<TamarinHeuristic> heuristics =
+          {TamarinHeuristic::S, TamarinHeuristic::C, TamarinHeuristic::I,
+           TamarinHeuristic::s, TamarinHeuristic::c, TamarinHeuristic::i,
+           TamarinHeuristic::P, TamarinHeuristic::p};
   for(auto heuristic : heuristics) {
-    output_stream << "Heuristic: " << heuristic << " " << flush;
-//    auto output = ProcessTamarinLemma(penetration_lemma, p.tamarin_path, p,
-//                                      "--heuristic=" + heuristic);
-// TODO: Call of lemma processor ignores tamarin args at the moment.
+//    output_stream << "Heuristic: " << heuristic << " " << flush; // TODO reimplement this
+    lemma_processor_->SetHeuristic(heuristic);
     auto output = lemma_processor_->ProcessLemma(p.spthy_file_path,
                                                  penetration_lemma);
     output_stream << to_string(output.result, &output_stream == &cout) 
@@ -350,10 +352,6 @@ int App::PenetrateLemma(const CmdParameters& p, ostream& output_stream) {
     if(output.result == ProverResult::True) break; 
   }
   return 0;
-}
-
-string App::GetTempfilePath() {
-  return kTempfilePath;
 }
 
 } // namespace uttamarin

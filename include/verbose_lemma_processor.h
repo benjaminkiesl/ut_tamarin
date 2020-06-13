@@ -47,6 +47,9 @@ class VerboseLemmaProcessor : public LemmaProcessor {
   virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
                                        const std::string& lemma_name) override;
 
+  // Sets the heuristics to use by the Tamarin prover
+  virtual void DoSetHeuristic(TamarinHeuristic heuristic) override;
+
   std::unique_ptr<LemmaProcessor> decoratee_;
 };
 

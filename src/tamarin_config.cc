@@ -45,11 +45,11 @@ TamarinConfig ParseTamarinConfigFile(const string& config_file_path){
     config_file_stream >> json_config;
   }
 
-  tamarin_config.lemma_blacklist = json_config.count("lemma_blacklist") ?
-    json_config["lemma_blacklist"].get<vector<string>>() : vector<string>{};
+  tamarin_config.lemma_deny_list = json_config.count("lemma_deny_list") ?
+    json_config["lemma_deny_list"].get<vector<string>>() : vector<string>{};
 
-  tamarin_config.lemma_whitelist = json_config.count("lemma_whitelist") ?
-    json_config["lemma_whitelist"].get<vector<string>>() : vector<string>{};
+  tamarin_config.lemma_allow_list = json_config.count("lemma_allow_list") ?
+    json_config["lemma_allow_list"].get<vector<string>>() : vector<string>{};
 
   if(json_config.count("global_annotations")){
     tamarin_config.global_annotations = 

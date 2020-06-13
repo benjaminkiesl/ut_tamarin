@@ -40,8 +40,8 @@ struct FactAnnotations {
 };
 
 struct TamarinConfig { 
-  std::vector<std::string> lemma_blacklist; 
-  std::vector<std::string> lemma_whitelist; 
+  std::vector<std::string> lemma_deny_list;
+  std::vector<std::string> lemma_allow_list;
   FactAnnotations global_annotations; 
   std::unordered_map<std::string, FactAnnotations> lemma_annotations; 
   

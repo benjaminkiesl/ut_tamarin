@@ -40,39 +40,7 @@ string ToSecondsString(int duration) {
   return std::to_string(duration) + " second" + (duration != 1 ? "s" : ""); 
 }
 
-string to_string(const ProverResult& prover_result, bool is_colorized) {
-  string result_string; 
-  if(prover_result == ProverResult::True) 
-    result_string = "verified"; 
-  else if(prover_result == ProverResult::False) 
-    result_string = "false"; 
-  else result_string = "timeout"; 
-  
-  if(is_colorized) { 
-    string prefix = "\033["; 
-    string color_code = prover_result == ProverResult::True ? 
-      "32" : prover_result == ProverResult::False ? "31" : "33"; 
-    result_string = prefix + color_code + "m" + result_string + "\033[m"; 
-  } 
-  return result_string; 
-}
-
-string to_string(const TamarinOutput& tamarin_output, 
-                 bool is_colorized) { 
-  string formatted = to_string(tamarin_output.result, is_colorized); 
-  formatted += " (" + ToSecondsString(tamarin_output.duration) + ")"; 
-  return formatted; 
-}
-
-string DurationToString(int seconds) { 
-  string strMinutes = std::to_string(seconds / 60); 
-  string strSeconds = std::to_string(seconds % 60); 
-  if(strMinutes.size() < 2) strMinutes = "0" + strMinutes; 
-  if(strSeconds.size() < 2) strSeconds = "0" + strSeconds; 
-  return strMinutes + ":" + strSeconds; 
-}
-
-void TrimLeft(string& line) { 
+void TrimLeft(string& line) {
   line.erase(line.begin(), std::find_if(line.begin(), line.end(), 
              [](int ch) { return !std::isspace(ch); })); 
 }

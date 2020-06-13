@@ -28,6 +28,7 @@
 
 #include "app.h"
 #include "bash_lemma_processor.h"
+#include "lemma_penetrator.h"
 #include "terminator.h"
 #include "verbose_lemma_processor.h"
 
@@ -81,20 +82,22 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(cli, argc, argv);
 
+  uttamarin::termination::registerSIGINTHandler(parameters.tamarin_path);
+
   auto lemma_processor = std::make_unique<uttamarin::VerboseLemmaProcessor>(
           std::make_unique<uttamarin::BashLemmaProcessor>(
             parameters.tamarin_path,
             parameters.proof_directory,
             parameters.timeout));
 
-  uttamarin::App app(std::move(lemma_processor));
-  
-  uttamarin::termination::registerSIGINTHandler(parameters.tamarin_path,
-                                                app.GetTempfilePath());
-
   if(parameters.penetration_lemma != ""){
-    return app.PenetrateLemma(parameters, std::cout);
+    uttamarin::LemmaPenetrator lemma_penetrator(std::move(lemma_processor));
+    lemma_penetrator.SetTimeout(parameters.timeout);
+    lemma_penetrator.PenetrateLemma(parameters.spthy_file_path,
+                                    parameters.penetration_lemma);
   } else {
-    return app.RunTamarinOnLemmas(parameters, std::cout) ? 0 : 1;
+    uttamarin::App app(std::move(lemma_processor));
+    app.RunTamarinOnLemmas(parameters, std::cout);
   }
+  return 0;
 }

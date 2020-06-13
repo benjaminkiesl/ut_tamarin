@@ -20,20 +20,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_TERMINATOR_H_ 
-#define UT_TAMARIN_TERMINATOR_H_
+#include "lemma_penetrator.h"
 
+#include <iostream>
+#include <memory>
 #include <string>
+#include <vector>
 
-namespace uttamarin::termination {
+#include "lemma_processor.h"
+#include "tamarin_interface.h"
+#include "utility.h"
 
-// Signal handler for SIGINT signal (sent by Ctrl+C)
-void sigint_handler(int signal);
+using std::ifstream;
+using std::istream;
+using std::string;
+using std::unique_ptr;
 
-// Sets the global 'tamarin_process' name. This is needed for killing Tamarin
-// in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const std::string& process_name);
+namespace uttamarin {
 
-} // namespace uttamarin::terminator
+class LemmaProcessor;
 
-#endif
+// A LemmaPenetrator tries proving a lemma with various heuristics
+LemmaPenetrator::LemmaPenetrator(unique_ptr<LemmaProcessor> lemma_processor)
+  : lemma_processor_(std::move(lemma_processor)),
+    timeout_(60){
+}
+
+LemmaPenetrator::~LemmaPenetrator() = default;
+
+ProverResult LemmaPenetrator::PenetrateLemma(const string &spthy_file_name,
+                                             const string &lemma_name) {
+
+}
+
+void LemmaPenetrator::SetTimeout(int timeout_in_seconds) {
+  timeout_ = timeout_in_seconds;
+}
+
+} // namespace uttamarin

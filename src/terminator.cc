@@ -36,9 +36,6 @@ namespace uttamarin::termination {
 // when the program receives a SIGINT signal (sent by Ctrl+C).
 string tamarin_process = "tamarin-prover";
 
-// Path to the tempfile created by UT Tamarin
-string local_tempfile_path = "";
-
 void (*default_sigint_handler)(int signal);
 
 // Signal handler for SIGINT signal (sent by Ctrl+C)
@@ -46,16 +43,13 @@ void sigint_handler(int signal)
 {
   std::cout << std::endl;
   std::system(("killall " + tamarin_process + " 2> /dev/null").c_str());
-  std::remove(local_tempfile_path.c_str());
   std::signal(signal, default_sigint_handler);
   std::raise(signal);
 }
 
 // Sets the global 'tamarin_process' name. This is needed for killing Tamarin
 // in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const string& process_name, 
-                           const string& tempfile_path){
-  local_tempfile_path = tempfile_path;
+void registerSIGINTHandler(const string& process_name){
   if(process_name.find('/') != string::npos){
     tamarin_process = process_name.substr(process_name.find_last_of('/')+1);
   } else {

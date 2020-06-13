@@ -37,6 +37,15 @@ using std::unique_ptr;
 
 namespace uttamarin {
 
+// Takes a duration in seconds and converts it into a string of the form MM:SS
+string DurationToString(int seconds) {
+  string strMinutes = std::to_string(seconds / 60);
+  string strSeconds = std::to_string(seconds % 60);
+  if(strMinutes.size() < 2) strMinutes = "0" + strMinutes;
+  if(strSeconds.size() < 2) strSeconds = "0" + strSeconds;
+  return strMinutes + ":" + strSeconds;
+}
+
 VerboseLemmaProcessor::VerboseLemmaProcessor(
         unique_ptr<LemmaProcessor> decoratee) :
                                        decoratee_(std::move(decoratee)) {
@@ -56,6 +65,10 @@ TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& spthy_file_pat
     cout << "\r" << lemma_name << " " << seconds << " " << std::flush;
   } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
   return f.get();
+}
+
+void VerboseLemmaProcessor::DoSetHeuristic(TamarinHeuristic heuristic) {
+  decoratee_->SetHeuristic(heuristic);
 }
 
 } // namespace uttamarin

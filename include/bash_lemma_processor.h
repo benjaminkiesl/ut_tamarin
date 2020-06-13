@@ -47,6 +47,12 @@ class BashLemmaProcessor : public LemmaProcessor {
   virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_path,
                                        const std::string& lemma_name) override;
 
+  // Sets the heuristics to use by the Tamarin prover
+  virtual void DoSetHeuristic(TamarinHeuristic heuristic) override;
+
+  // Returns a command line representation of the heuristic argument
+  std::string GetTamarinHeuristicArgument();
+
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
   ProverResult ExtractResultForLemma(std::istream& stream_of_tamarin_output,
@@ -63,6 +69,7 @@ class BashLemmaProcessor : public LemmaProcessor {
   std::string tamarin_path_;
   std::string proof_directory_;
   int timeout_;
+  TamarinHeuristic heuristic_;
 };
 
 } // namespace uttamarin

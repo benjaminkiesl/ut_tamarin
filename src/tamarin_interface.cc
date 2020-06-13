@@ -20,20 +20,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_TERMINATOR_H_ 
-#define UT_TAMARIN_TERMINATOR_H_
+#include "tamarin_interface.h"
 
 #include <string>
 
-namespace uttamarin::termination {
+#include "utility.h"
 
-// Signal handler for SIGINT signal (sent by Ctrl+C)
-void sigint_handler(int signal);
+using std::string;
 
-// Sets the global 'tamarin_process' name. This is needed for killing Tamarin
-// in case the program receives a SIGINT signal (sent by Ctrl+C).
-void registerSIGINTHandler(const std::string& process_name);
+namespace uttamarin {
 
-} // namespace uttamarin::terminator
+string to_string(const ProverResult& prover_result, bool is_colorized) {
+  string result_string = "";
+  switch(prover_result) {
+    case ProverResult::True: result_string = "verified"; break;
+    case ProverResult::False: result_string = "false"; break;
+    case ProverResult::Unknown: result_string = "timeout";
+  }
 
-#endif
+  if(is_colorized) {
+    string prefix = "\033[";
+    string color_code = prover_result == ProverResult::True ?
+      "32" : prover_result == ProverResult::False ? "31" : "33";
+    result_string = prefix + color_code + "m" + result_string + "\033[m";
+  }
+  return result_string;
+}
+
+string to_string(const TamarinOutput& tamarin_output,
+                 bool is_colorized) {
+  string formatted = to_string(tamarin_output.result, is_colorized);
+  formatted += " (" + ToSecondsString(tamarin_output.duration) + ")";
+  return formatted;
+}
+
+} // namespace uttamarin

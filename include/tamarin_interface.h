@@ -23,14 +23,27 @@
 #ifndef UT_TAMARIN_TAMARIN_INTERFACE_H_ 
 #define UT_TAMARIN_TAMARIN_INTERFACE_H_
 
+#include <string>
+
 namespace uttamarin {
 
 enum class ProverResult { True, False, Unknown };
 
-struct TamarinOutput { 
-  ProverResult result; 
-  int duration; // in seconds 
+struct TamarinOutput {
+  ProverResult result;
+  int duration; // in seconds
 };
+
+// Converts a given ProverResult to a string. If the parameter 'is_colorized'
+// is true, then the string is colored using color codes for the bash
+std::string to_string(const ProverResult& prover_result,
+                      bool is_colorized=false);
+
+// Converts a given TamarinOutput into a string. If the parameter 'is_colorized'
+// is true, then the string is colored using color codes for the bash
+std::string to_string(const TamarinOutput& tamarin_output,
+                      bool is_colorized=false);
+
 
 } // namespace uttamarin
 

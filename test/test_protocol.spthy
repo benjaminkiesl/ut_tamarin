@@ -18,6 +18,9 @@ rule Loop:
 
 // BEGIN Statements
 
+lemma denied_lemma:
+    "All X #i. K(X) @ i ==> K(X) @ i"
+
 lemma first_true_statement:
     "All X #i. K(X) @ i ==> K(X) @ i"
 

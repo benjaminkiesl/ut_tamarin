@@ -29,6 +29,8 @@
 
 namespace uttamarin {
 
+enum class TamarinHeuristic {S, s, C, c, I, i, P, p};
+
 class LemmaProcessor {
  public:
   virtual ~LemmaProcessor() = default;
@@ -41,10 +43,16 @@ class LemmaProcessor {
     DoProcessLemma(spthy_file_name, lemma_name);
   }
 
+  // Sets the heuristics to use by the Tamarin prover
+  void SetHeuristic(TamarinHeuristic heuristic) {
+    DoSetHeuristic(heuristic);
+  }
+
  private:
   virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
                                        const std::string& lemma_name) = 0;
 
+  virtual void DoSetHeuristic(TamarinHeuristic heuristic) = 0;
 };
 
 } // namespace uttamarin

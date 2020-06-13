@@ -1,8 +1,8 @@
 {
-	"lemma_blacklist": [ 
-		"black_listed_lemma"	
+	"lemma_deny_list": [ 
+		"denied_lemma"	
 	],
-	"lemma_whitelist": [],
+	"lemma_allow_list": [],
 	"global_annotations": {
 		"important_facts": ["NewFact", "OtherFact"],
 		"unimportant_facts": ["SomeUnimportantFact"],
