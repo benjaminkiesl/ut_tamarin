@@ -23,6 +23,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "cli11/CLI11.hpp"
 
@@ -30,6 +31,7 @@
 #include "bash_lemma_processor.h"
 #include "lemma_penetrator.h"
 #include "m4_theory_preprocessor.h"
+#include "output_writer.h"
 #include "terminator.h"
 #include "ut_tamarin_config.h"
 #include "verbose_lemma_processor.h"
@@ -85,6 +87,14 @@ int main (int argc, char *argv[])
 
   termination::registerSIGINTHandler();
 
+  std::vector<std::ostream*> output_streams = {&std::cout};
+  std::ofstream output_file_stream;
+  if(parameters.output_file_path != "") {
+    output_file_stream.open(parameters.output_file_path);
+    output_streams.emplace_back(&output_file_stream);
+  }
+  auto output_writer = std::make_shared<OutputWriter>(output_streams);
+
   auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
           std::make_unique<BashLemmaProcessor>(
             parameters.proof_directory,
@@ -95,14 +105,18 @@ int main (int argc, char *argv[])
           ParseUtTamarinConfigFile(parameters.config_file_path);
 
   if(parameters.penetration_lemma != ""){
-    LemmaPenetrator lemma_penetrator(std::move(lemma_processor));
+    LemmaPenetrator lemma_penetrator(std::move(lemma_processor),
+                                     output_writer);
     lemma_penetrator.SetTimeout(parameters.timeout);
     lemma_penetrator.PenetrateLemma(parameters.spthy_file_path,
                                     parameters.penetration_lemma);
   } else {
     auto theory_preprocessor = std::make_unique<M4TheoryPreprocessor>(config);
-    App app(std::move(lemma_processor), std::move(theory_preprocessor), config);
-    app.RunTamarinOnLemmas(parameters, std::cout);
+    App app(std::move(lemma_processor),
+            std::move(theory_preprocessor),
+            config,
+            output_writer);
+    app.RunTamarinOnLemmas(parameters);
   }
   return 0;
 }

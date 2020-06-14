@@ -28,11 +28,13 @@
 #include <vector>
 
 #include "lemma_processor.h"
+#include "output_writer.h"
 #include "tamarin_interface.h"
 #include "utility.h"
 
 using std::cout;
 using std::endl;
+using std::shared_ptr;
 using std::string;
 using std::unique_ptr;
 using std::vector;
@@ -42,43 +44,58 @@ namespace uttamarin {
 class LemmaProcessor;
 
 // A LemmaPenetrator tries proving a lemma with various heuristics
-LemmaPenetrator::LemmaPenetrator(unique_ptr<LemmaProcessor> lemma_processor)
+LemmaPenetrator::LemmaPenetrator(unique_ptr<LemmaProcessor> lemma_processor,
+                                 shared_ptr<OutputWriter> output_writer)
   : lemma_processor_(std::move(lemma_processor)),
-    timeout_(60){
+    output_writer_(output_writer),
+    all_heuristics_({TamarinHeuristic::S, TamarinHeuristic::s,
+                     TamarinHeuristic::I, TamarinHeuristic::i,
+                     TamarinHeuristic::C, TamarinHeuristic::c,
+                     TamarinHeuristic::P, TamarinHeuristic::p}),
+    timeout_(60) {
 }
 
 LemmaPenetrator::~LemmaPenetrator() = default;
 
 void LemmaPenetrator::PenetrateLemma(const string &spthy_file_path,
                                      const string &lemma_name) {
-  std::ostream& output_stream = cout; // TODO: make this a parameter
   auto lemmas_in_file = ReadLemmaNamesFromSpthyFile(spthy_file_path);
 
   string lemma = GetStringWithShortestEditDistance(lemmas_in_file,
                                                    lemma_name);
 
-  cout << "Penetrating lemma '" << lemma << "' with a per-heuristic timeout of "
-    << ToSecondsString(timeout_) << "." << std::endl << std::endl;
+  PrintHeader(lemma);
 
-  vector<TamarinHeuristic> heuristics =
-          {TamarinHeuristic::S, TamarinHeuristic::s,
-           TamarinHeuristic::I, TamarinHeuristic::i,
-           TamarinHeuristic::C, TamarinHeuristic::c,
-           TamarinHeuristic::P, TamarinHeuristic::p};
-
-  for(auto heuristic : heuristics) {
+  for(auto heuristic : all_heuristics_) {
     lemma_processor_->SetHeuristic(heuristic);
-
     auto output = lemma_processor_->ProcessLemma(spthy_file_path, lemma);
-
-    output_stream << to_string(output.result, &output_stream == &cout)
-                  << " (" << ToSecondsString(output.duration) << ")"
-                  << " heuristic=" << ToOutputString(heuristic) << endl;
+    PrintLemmaResults(lemma, output, heuristic);
   }
 }
 
 void LemmaPenetrator::SetTimeout(int timeout_in_seconds) {
   timeout_ = timeout_in_seconds;
+}
+
+void LemmaPenetrator::PrintHeader(const string& lemma) {
+  *output_writer_ << "Penetrating lemma '" << lemma
+    << "' with a per-heuristic timeout of " << ToSecondsString(timeout_)
+    << ".\n\n";
+}
+
+void LemmaPenetrator::PrintLemmaResults(const string& lemma,
+                                        const TamarinOutput& tamarin_output,
+                                        TamarinHeuristic heuristic) {
+  if(tamarin_output.result == ProverResult::True) {
+    output_writer_->WriteColorized("verified", TextColor::Green);
+  } else if(tamarin_output.result == ProverResult::False) {
+    output_writer_->WriteColorized("false", TextColor::Red);
+  } else {
+    output_writer_->WriteColorized("unverified", TextColor::Yellow);
+  }
+
+  *output_writer_ << " (" << ToSecondsString(tamarin_output.duration) << ")"
+                  << " heuristic=" << ToOutputString(heuristic) << "\n";
 }
 
 std::string LemmaPenetrator::ToOutputString(TamarinHeuristic heuristic) {

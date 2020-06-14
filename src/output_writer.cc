@@ -20,49 +20,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
-#define UT_TAMARIN_LEMMA_PROCESSOR_H_
+#include "output_writer.h"
 
+#include <initializer_list>
 #include <string>
+#include <vector>
 
-#include "tamarin_interface.h"
+using std::string;
 
 namespace uttamarin {
 
-enum class TamarinHeuristic {S, s, C, c, I, i, P, p, None};
+OutputWriter::OutputWriter(std::vector<std::ostream*> streams) :
+  streams_(streams),
+  color_code_of_({{TextColor::Red, "31"},
+                  {TextColor::Green, "32"},
+                  {TextColor::Yellow, "33"}}){
+}
 
-class LemmaProcessor {
- public:
-  virtual ~LemmaProcessor() = default;
-
-  // Takes as input a  lemma name and then runs Tamarin on the given lemma.
-  // Returns some output/statistics (like Tamarin's result and the execution
-  // duration).
-  TamarinOutput ProcessLemma(const std::string& spthy_file_name,
-                             const std::string& lemma_name) {
-    DoProcessLemma(spthy_file_name, lemma_name);
+void OutputWriter::Endl() {
+  for(auto stream : streams_){
+    *stream << std::endl;
   }
-
-
-  // Returns the heuristics used by the Tamarin prover
-  TamarinHeuristic GetHeuristic() {
-    DoGetHeuristic();
-  }
-
-
-  // Sets the heuristics to use by the Tamarin prover
-  void SetHeuristic(TamarinHeuristic heuristic) {
-    DoSetHeuristic(heuristic);
-  }
-
- private:
-  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
-                                       const std::string& lemma_name) = 0;
-
-  virtual TamarinHeuristic DoGetHeuristic() = 0;
-  virtual void DoSetHeuristic(TamarinHeuristic heuristic) = 0;
-};
+}
 
 } // namespace uttamarin
-
-#endif

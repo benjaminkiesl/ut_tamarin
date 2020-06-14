@@ -33,11 +33,14 @@
 
 namespace uttamarin {
 
+class OutputWriter;
+
 // A LemmaPenetrator tries proving a lemma with various heuristics
 class LemmaPenetrator {
 
  public:
-  LemmaPenetrator(std::unique_ptr<LemmaProcessor> lemma_processor);
+  LemmaPenetrator(std::unique_ptr<LemmaProcessor> lemma_processor,
+                  std::shared_ptr<OutputWriter> output_writer);
   ~LemmaPenetrator();
 
   void PenetrateLemma(const std::string& spthy_file_path,
@@ -46,10 +49,19 @@ class LemmaPenetrator {
   void SetTimeout(int timeout_in_seconds);
 
  private:
+  void PrintHeader(const std::string& lemma);
+
+  void PrintLemmaResults(const std::string& lemma,
+                         const TamarinOutput& tamarin_output,
+                         TamarinHeuristic heuristic);
+
   std::string ToOutputString(TamarinHeuristic heuristic);
 
   std::unique_ptr<LemmaProcessor> lemma_processor_;
+  std::shared_ptr<OutputWriter> output_writer_;
+  std::vector<TamarinHeuristic> all_heuristics_;
   int timeout_;
+
 };
 
 } // namespace uttamarin

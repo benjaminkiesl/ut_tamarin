@@ -47,6 +47,6 @@ std::string GetStringWithShortestEditDistance(
 // seconds.
 int ExecuteShellCommand(const std::string& cmd);
 
-} // namespace uttamarin::utility
+} // namespace uttamarin
 
 #endif

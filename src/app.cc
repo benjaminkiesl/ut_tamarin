@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "lemma_processor.h"
+#include "output_writer.h"
 #include "tamarin_interface.h"
 #include "theory_preprocessor.h"
 #include "ut_tamarin_config.h"
@@ -49,18 +50,19 @@ namespace uttamarin {
 
 App::App(unique_ptr<LemmaProcessor> lemma_processor,
          unique_ptr<TheoryPreprocessor> theory_preprocessor,
-         shared_ptr<UtTamarinConfig> config) :
+         shared_ptr<UtTamarinConfig> config,
+         shared_ptr<OutputWriter> output_writer) :
   lemma_processor_(std::move(lemma_processor)),
   theory_preprocessor_(std::move(theory_preprocessor)),
-  config_(config) {
+  config_(config),
+  output_writer_(output_writer) {
 
 }
 
 App::~App() = default;
 
-bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
-                             ostream& output_stream) {
-  PrintHeader(output_stream, parameters);
+bool App::RunTamarinOnLemmas(const CmdParameters& parameters) {
+  PrintHeader(parameters);
 
   auto lemma_names = GetNamesOfLemmasToVerify(parameters.spthy_file_path,
                                               config_->lemma_allow_list,
@@ -76,49 +78,80 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters,
             theory_preprocessor_->PreprocessAndReturnPathToResultingFile(
                     parameters.spthy_file_path, lemma_names[i]);
 
-    auto stats = lemma_processor_->ProcessLemma(preprocessed_spthy_file,
+    auto output = lemma_processor_->ProcessLemma(preprocessed_spthy_file,
                                                 lemma_names[i]);
-    output_stream << "\r" << lemma_names[i] << " (" << (i+1) << "/" <<
-                  lemma_names.size() << ") " <<
-                  to_string(stats, &output_stream == &cout) << endl;
-    overall_duration += stats.duration;
-    count_of[stats.result]++;
+    PrintLemmaResults(lemma_names[i], output, lemma_processor_->GetHeuristic());
+
+    overall_duration += output.duration;
+    count_of[output.result]++;
     std::remove(preprocessed_spthy_file.c_str());
-    if(stats.result != ProverResult::True) {
+    if(output.result != ProverResult::True) {
       success = false;
       if(parameters.abort_after_failure) break;
     }
   }
 
-  PrintFooter(output_stream, count_of[ProverResult::True],
-              count_of[ProverResult::False], count_of[ProverResult::Unknown],
-              overall_duration);
+  PrintFooter(count_of[ProverResult::True], count_of[ProverResult::False],
+              count_of[ProverResult::Unknown], overall_duration);
 
   return success;
 }
 
-void App::PrintHeader(ostream& output_stream, const CmdParameters& parameters) {
+void App::PrintHeader(const CmdParameters& parameters) {
   auto file_name = parameters.spthy_file_path;
   if(file_name.find('/') != string::npos) {
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
   }
 
-  output_stream << "Tamarin Tests for file '" << file_name << "':" << endl
-    << "Timeout: " << (parameters.timeout <= 0 ? "no timeout" :
-    (std::to_string(parameters.timeout) + " second" +
-    (parameters.timeout > 1 ? "s" : ""))) << " per lemma" << endl << endl;
+  *output_writer_ << "Tamarin Tests for file '" << file_name << "':\n"
+    << "Timeout: " << (parameters.timeout <= 0 ?
+    "no timeout" : ToSecondsString(parameters.timeout))
+    << " per lemma\n";
+
+  output_writer_->Endl();
 }
 
-void App::PrintFooter(ostream& output_stream,
-                      int true_lemmas, int false_lemmas,
+void App::PrintLemmaResults(const string& lemma,
+                            const TamarinOutput& tamarin_output,
+                            const TamarinHeuristic& heuristic) {
+  *output_writer_ << lemma << " ";
+  if(tamarin_output.result == ProverResult::True) {
+    output_writer_->WriteColorized("verified", TextColor::Green);
+  } else if(tamarin_output.result == ProverResult::False) {
+    output_writer_->WriteColorized("false", TextColor::Red);
+  } else {
+    output_writer_->WriteColorized("unverified", TextColor::Yellow);
+  }
+  *output_writer_ << " (" << ToSecondsString(tamarin_output.duration) << ")";
+  if(heuristic != TamarinHeuristic::None) {
+    *output_writer_ << " heuristic=" << ToOutputString(heuristic);
+  }
+  output_writer_->Endl();
+}
+
+void App::PrintFooter(int true_lemmas, int false_lemmas,
                       int unknown_lemmas, int overall_duration) {
-  output_stream << endl
-    << "Summary: " << endl
+  *output_writer_ << "\n"
+    << "Summary: " << "\n"
     << to_string(ProverResult::True) << ": " << true_lemmas
     << ", " << to_string(ProverResult::False) << ": " << false_lemmas
     << ", " << to_string(ProverResult::Unknown) << ": " << unknown_lemmas
-    << endl
-    << "Overall duration: " << ToSecondsString(overall_duration) << endl;
+    << "\n"
+    << "Overall duration: " << ToSecondsString(overall_duration);
+  output_writer_->Endl();
+}
+
+std::string App::ToOutputString(const TamarinHeuristic& heuristic) {
+  switch(heuristic){
+    case TamarinHeuristic::S: return "S";
+    case TamarinHeuristic::s: return "s";
+    case TamarinHeuristic::I: return "I";
+    case TamarinHeuristic::i: return "i";
+    case TamarinHeuristic::C: return "c";
+    case TamarinHeuristic::P: return "P";
+    case TamarinHeuristic::p: return "p";
+    default: return "unknown";
+  }
 }
 
 vector<string> App::GetLemmasInAllowList(const vector<string>& all_lemmas,

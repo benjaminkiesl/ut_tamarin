@@ -32,11 +32,13 @@ namespace uttamarin {
 
 class LemmaProcessor;
 class TheoryPreprocessor;
+class OutputWriter;
 
 struct UtTamarinConfig;
 struct TamarinOutput;
 
 enum class ProverResult;
+enum class TamarinHeuristic;
 
 struct CmdParameters { 
   std::string spthy_file_path;
@@ -54,27 +56,32 @@ class App {
  public:
   App(std::unique_ptr<LemmaProcessor> lemma_processor,
       std::unique_ptr<TheoryPreprocessor> theory_preprocessor,
-      std::shared_ptr<UtTamarinConfig> config);
+      std::shared_ptr<UtTamarinConfig> config,
+      std::shared_ptr<OutputWriter> output_writer);
 
   ~App();
 
   // Runs Tamarin on lemmas in the given spthy file. The actual choice of
   // lemmas depends on the command-line parameters. Returns true if Tamarin is
   // able to prove all lemmas.
-  bool RunTamarinOnLemmas(const CmdParameters& parameters, 
-                          std::ostream& output_stream);
+  bool RunTamarinOnLemmas(const CmdParameters& parameters);
 
  private:
 
   // Prints the header for the Tamarin output based on the given command line
-  // parameters. The header is printed to the given ostream output_stream.
-  void PrintHeader(std::ostream& output_stream, const CmdParameters& parameters);
+  // parameters.
+  void PrintHeader(const CmdParameters& parameters);
+
+  void PrintLemmaResults(const std::string& lemma,
+                         const TamarinOutput& tamarin_output,
+                         const TamarinHeuristic& heuristic);
 
   // Prints the footer for the Tamarin output based on the given command line
-  // parameters. The header is printed to the given ostream output_stream.
-  void PrintFooter(std::ostream& output_stream,
-                   int true_lemmas, int false_lemmas,
+  // parameters.
+  void PrintFooter(int true_lemmas, int false_lemmas,
                    int unknown_lemmas, int overall_duration);
+
+  std::string ToOutputString(const TamarinHeuristic& heuristic);
 
   // Takes as input two vectors of lemmas (the initial lemmas and the
   // "allow list", respectively) and removes from the initial lemmas all lemmas
@@ -112,6 +119,7 @@ class App {
   std::unique_ptr<LemmaProcessor> lemma_processor_;
   std::unique_ptr<TheoryPreprocessor> theory_preprocessor_;
   std::shared_ptr<UtTamarinConfig> config_;
+  std::shared_ptr<OutputWriter> output_writer_;
 };
 
 } // namespace uttamarin

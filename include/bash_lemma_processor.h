@@ -46,6 +46,9 @@ class BashLemmaProcessor : public LemmaProcessor {
   virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_path,
                                        const std::string& lemma_name) override;
 
+  // Returns the heuristics used by the Tamarin prover
+  virtual TamarinHeuristic DoGetHeuristic() override;
+
   // Sets the heuristics to use by the Tamarin prover
   virtual void DoSetHeuristic(TamarinHeuristic heuristic) override;
 

@@ -41,14 +41,18 @@ BashLemmaProcessor::BashLemmaProcessor(const string& proof_directory,
                                        const int timeout) :
                                        proof_directory_(proof_directory),
                                        timeout_(timeout),
-                                       heuristic_(TamarinHeuristic::S){
+                                       heuristic_(TamarinHeuristic::None){
 }
 
 TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
                                                  const string& lemma_name) {
   string cmd = "timeout " + std::to_string(timeout_) + " ";
 
-  string tamarin_args = "--heuristic=" + GetTamarinHeuristicArgument();
+  string tamarin_args = "";
+
+  if(heuristic_ != TamarinHeuristic::None) {
+    tamarin_args += "--heuristic=" + GetTamarinHeuristicArgument();
+  }
 
   if(!proof_directory_.empty()) {
     tamarin_args += " --output=" + proof_directory_ + "/" +
@@ -70,6 +74,10 @@ TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
   return tamarin_output;
 }
 
+TamarinHeuristic BashLemmaProcessor::DoGetHeuristic() {
+  return heuristic_;
+}
+
 void BashLemmaProcessor::DoSetHeuristic(TamarinHeuristic heuristic) {
   heuristic_ = heuristic;
 }
@@ -83,7 +91,8 @@ string BashLemmaProcessor::GetTamarinHeuristicArgument() {
     case TamarinHeuristic::C: return "c";
     case TamarinHeuristic::P: return "P";
     case TamarinHeuristic::p: return "p";
-    default: return "S";
+    case TamarinHeuristic::None: return "";
+    default: return "";
   }
 }
 

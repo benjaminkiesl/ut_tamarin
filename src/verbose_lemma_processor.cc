@@ -63,8 +63,14 @@ TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& spthy_file_pat
          std::chrono::high_resolution_clock::now() - start_time).count());
     cout << "\r" << lemma_name << " " << seconds << " " << std::flush;
   } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
+  cout << "\r";
   return f.get();
 }
+
+TamarinHeuristic VerboseLemmaProcessor::DoGetHeuristic() {
+  return decoratee_->GetHeuristic();
+}
+
 
 void VerboseLemmaProcessor::DoSetHeuristic(TamarinHeuristic heuristic) {
   decoratee_->SetHeuristic(heuristic);
