@@ -29,17 +29,33 @@
 
 #include "app.h"
 #include "bash_lemma_processor.h"
-#include "lemma_penetrator.h"
+#include "default_lemma_job_generator.h"
 #include "m4_theory_preprocessor.h"
 #include "output_writer.h"
+#include "penetration_lemma_job_generator.h"
 #include "terminator.h"
 #include "ut_tamarin_config.h"
 #include "verbose_lemma_processor.h"
 
 using namespace uttamarin;
 
+std::unique_ptr<LemmaJobGenerator> CreateLemmaJobGenerator(
+        const CmdParameters& parameters,
+        std::shared_ptr<UtTamarinConfig> config) {
+  if(parameters.penetration_lemma != ""){
+    return std::make_unique<PenetrationLemmaJobGenerator>(
+            parameters.spthy_file_path,
+            parameters.penetration_lemma);
+  }
+  return std::make_unique<DefaultLemmaJobGenerator>(parameters.spthy_file_path,
+                                                    parameters.starting_lemma,
+                                                    config);
+}
+
 int main (int argc, char *argv[])
 {
+  termination::registerSIGINTHandler();
+
   CmdParameters parameters;
 
   CLI::App cli{
@@ -85,9 +101,18 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(cli, argc, argv);
 
-  termination::registerSIGINTHandler();
+  auto config = parameters.config_file_path == "" ?
+                std::make_shared<UtTamarinConfig>() :
+                ParseUtTamarinConfigFile(parameters.config_file_path);
 
-  std::vector<std::ostream*> output_streams = {&std::cout};
+  auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
+          std::make_unique<BashLemmaProcessor>(
+                  parameters.proof_directory,
+                  parameters.timeout));
+
+  auto theory_preprocessor = std::make_unique<M4TheoryPreprocessor>(config);
+
+  std::vector<std::ostream*> output_streams = std::vector{&std::cout};
   std::ofstream output_file_stream;
   if(parameters.output_file_path != "") {
     output_file_stream.open(parameters.output_file_path);
@@ -95,28 +120,14 @@ int main (int argc, char *argv[])
   }
   auto output_writer = std::make_shared<OutputWriter>(output_streams);
 
-  auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
-          std::make_unique<BashLemmaProcessor>(
-            parameters.proof_directory,
-            parameters.timeout));
+  App app (std::move(lemma_processor),
+           std::move(theory_preprocessor),
+           config,
+           output_writer);
 
-  auto config = parameters.config_file_path == "" ?
-          std::make_shared<UtTamarinConfig>() :
-          ParseUtTamarinConfigFile(parameters.config_file_path);
+  auto lemma_job_generator = CreateLemmaJobGenerator(parameters, config);
 
-  if(parameters.penetration_lemma != ""){
-    LemmaPenetrator lemma_penetrator(std::move(lemma_processor),
-                                     output_writer);
-    lemma_penetrator.SetTimeout(parameters.timeout);
-    lemma_penetrator.PenetrateLemma(parameters.spthy_file_path,
-                                    parameters.penetration_lemma);
-  } else {
-    auto theory_preprocessor = std::make_unique<M4TheoryPreprocessor>(config);
-    App app(std::move(lemma_processor),
-            std::move(theory_preprocessor),
-            config,
-            output_writer);
-    app.RunTamarinOnLemmas(parameters);
-  }
+  app.RunOnLemmas(lemma_job_generator->GenerateLemmaJobs(), parameters);
+
   return 0;
 }

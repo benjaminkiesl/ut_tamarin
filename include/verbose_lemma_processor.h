@@ -42,14 +42,7 @@ class VerboseLemmaProcessor : public LemmaProcessor {
   // Takes as input a tamarin file path and a lemma name and then runs Tamarin
   // on the given lemma. Returns some output/statistics (like Tamarin's result
   // and the execution duration). Additionally prints its statistics to cout.
-  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_name,
-                                       const std::string& lemma_name) override;
-
-  // Returns the heuristics used by the Tamarin prover
-  virtual TamarinHeuristic DoGetHeuristic() override;
-
-  // Sets the heuristics to use by the Tamarin prover
-  virtual void DoSetHeuristic(TamarinHeuristic heuristic) override;
+  virtual TamarinOutput DoProcessLemma(const LemmaJob& lemma_job) override;
 
   std::unique_ptr<LemmaProcessor> decoratee_;
 };

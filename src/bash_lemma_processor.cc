@@ -26,6 +26,7 @@
 #include <fstream>
 #include <string>
 
+#include "lemma_job.h"
 #include "utility.h"
 
 using std::ifstream;
@@ -39,50 +40,43 @@ const string kTempPath = "/tmp/uttamarintemp.ut";
 BashLemmaProcessor::BashLemmaProcessor(const string& proof_directory,
                                        const int timeout) :
                                        proof_directory_(proof_directory),
-                                       timeout_(timeout),
-                                       heuristic_(TamarinHeuristic::None){
+                                       timeout_(timeout) {
 }
 
-TamarinOutput BashLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
-                                                 const string& lemma_name) {
+TamarinOutput BashLemmaProcessor::DoProcessLemma(const LemmaJob& lemma_job) {
   string cmd = "timeout " + std::to_string(timeout_) + " ";
 
   string tamarin_args = "";
 
-  if(heuristic_ != TamarinHeuristic::None) {
-    tamarin_args += "--heuristic=" + GetTamarinHeuristicArgument();
+  if(lemma_job.GetHeuristic() != TamarinHeuristic::None) {
+    tamarin_args += "--heuristic=" +
+                    GetTamarinHeuristicArgument(lemma_job.GetHeuristic());
   }
 
   if(!proof_directory_.empty()) {
     tamarin_args += " --output=" + proof_directory_ + "/" +
-                    lemma_name + ".spthy";
+                    lemma_job.GetLemmaName() + ".spthy";
   }
 
-  cmd += "tamarin-prover --prove=" + lemma_name + " "
-         + tamarin_args + " " + spthy_file_path
+  cmd += "tamarin-prover --prove=" + lemma_job.GetLemmaName() + " "
+         + tamarin_args + " " + lemma_job.GetSpthyFilePath()
          + " 1> " + kTempPath + " 2> /dev/null";
 
   TamarinOutput tamarin_output;
   tamarin_output.duration = ExecuteShellCommand(cmd);
 
   ifstream file_stream {kTempPath, ifstream::in};
-  tamarin_output.result = ExtractResultForLemma(file_stream, lemma_name);
+  tamarin_output.result =
+          ExtractResultForLemma(file_stream, lemma_job.GetLemmaName());
 
   std::remove(kTempPath.c_str());
 
   return tamarin_output;
 }
 
-TamarinHeuristic BashLemmaProcessor::DoGetHeuristic() {
-  return heuristic_;
-}
-
-void BashLemmaProcessor::DoSetHeuristic(TamarinHeuristic heuristic) {
-  heuristic_ = heuristic;
-}
-
-string BashLemmaProcessor::GetTamarinHeuristicArgument() {
-  switch(heuristic_){
+string BashLemmaProcessor::GetTamarinHeuristicArgument(
+        const TamarinHeuristic& heuristic) {
+  switch(heuristic){
     case TamarinHeuristic::S: return "S";
     case TamarinHeuristic::s: return "s";
     case TamarinHeuristic::I: return "I";

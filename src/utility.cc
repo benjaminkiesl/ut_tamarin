@@ -73,7 +73,6 @@ string GetStringWithShortestEditDistance(const vector<string>& candidates,
   return closest_lemma;
 }
 
-
 int ExecuteShellCommand(const string& cmd) { 
   auto start_time = std::chrono::high_resolution_clock::now();
   int status; 

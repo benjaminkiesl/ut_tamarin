@@ -34,6 +34,7 @@ class LemmaProcessor;
 class TheoryPreprocessor;
 class OutputWriter;
 
+struct LemmaJob;
 struct UtTamarinConfig;
 struct TamarinOutput;
 
@@ -64,17 +65,16 @@ class App {
   // Runs Tamarin on lemmas in the given spthy file. The actual choice of
   // lemmas depends on the command-line parameters. Returns true if Tamarin is
   // able to prove all lemmas.
-  bool RunTamarinOnLemmas(const CmdParameters& parameters);
+  bool RunOnLemmas(const std::vector<LemmaJob>& lemma_jobs,
+                   const CmdParameters& parameters);
 
  private:
-
   // Prints the header for the Tamarin output based on the given command line
   // parameters.
   void PrintHeader(const CmdParameters& parameters);
 
-  void PrintLemmaResults(const std::string& lemma,
-                         const TamarinOutput& tamarin_output,
-                         const TamarinHeuristic& heuristic);
+  void PrintLemmaResults(const LemmaJob& lemma_job,
+                         const TamarinOutput& tamarin_output);
 
   // Prints the footer for the Tamarin output based on the given command line
   // parameters.
@@ -82,39 +82,6 @@ class App {
                    int unknown_lemmas, int overall_duration);
 
   std::string ToOutputString(const TamarinHeuristic& heuristic);
-
-  // Takes as input two vectors of lemmas (the initial lemmas and the
-  // "allow list", respectively) and removes from the initial lemmas all lemmas
-  // that do not occur in the allow list.
-  std::vector<std::string> GetLemmasInAllowList(
-          const std::vector<std::string>& all_lemmas,
-          const std::vector<std::string>& allow_list);
-
-  // Takes as input two vectors of lemmas (the initial lemmas and the
-  // deny list, respectively) and removes from the initial lemmas all lemmas
-  // that occur in the deny list.
-  std::vector<std::string> RemoveLemmasInDenyList(
-          const std::vector<std::string>& all_lemmas,
-          const std::vector<std::string>& deny_list);
-
-  // Takes as input a vector of lemmas and a lemma name. Removes from the
-  // vector all lemmas that occur before the lemma with the given name (in
-  // fact, removes all lemmas before the lemma whose name is closest to
-  // 'starting_lemma').
-  std::vector<std::string> RemoveLemmasBeforeStart(
-          const std::vector<std::string>& all_lemmas,
-          const std::string& starting_lemma);
-
-  // Takes the path to a Tamarin theory file (".spthy") and a lemma file (i.e.,
-  // a file with a list of lemma names, one per line) and determines which
-  // lemmas should be verified (namely those that are both in the lemma file
-  // and the Tamarin file). If a lemma name is in the lemma file but not in the
-  // Tamarin file, a warning message is printed.
-  std::vector<std::string> GetNamesOfLemmasToVerify(
-          const std::string& spthy_file_path,
-          const std::vector<std::string>& allow_list,
-          const std::vector<std::string>& deny_list,
-          const std::string& starting_lemma = "");
 
   std::unique_ptr<LemmaProcessor> lemma_processor_;
   std::unique_ptr<TheoryPreprocessor> theory_preprocessor_;

@@ -20,49 +20,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PENETRATOR_H_
-#define UT_TAMARIN_LEMMA_PENETRATOR_H_
+#include "lemma_job.h"
 
-#include <iostream>
-#include <memory>
 #include <string>
-#include <vector>
 
-#include "lemma_processor.h"
+using std::string;
 
 namespace uttamarin {
 
-class OutputWriter;
+LemmaJob::LemmaJob(string spthy_file_path,
+                   string lemma_name,
+                   const TamarinHeuristic& heuristic)
+                   : spthy_file_path_(spthy_file_path),
+                     lemma_name_(lemma_name),
+                     heuristic_(heuristic) {
 
-// A LemmaPenetrator tries proving a lemma with various heuristics
-class LemmaPenetrator {
+}
 
- public:
-  LemmaPenetrator(std::unique_ptr<LemmaProcessor> lemma_processor,
-                  std::shared_ptr<OutputWriter> output_writer);
-  ~LemmaPenetrator();
+const string LemmaJob::GetSpthyFilePath() const {
+  return spthy_file_path_;
+}
 
-  void PenetrateLemma(const std::string& spthy_file_path,
-                      const std::string& lemma_name);
+void LemmaJob::SetSpthyFilePath(const string& spthy_file_path) {
+  spthy_file_path_ = spthy_file_path;
+}
 
-  void SetTimeout(int timeout_in_seconds);
+const string LemmaJob::GetLemmaName() const {
+  return lemma_name_;
+}
 
- private:
-  void PrintHeader(const std::string& lemma);
+void LemmaJob::SetLemmaName(const string& lemma_name) {
+  lemma_name_ = lemma_name;
+}
 
-  void PrintLemmaResults(const std::string& lemma,
-                         const TamarinOutput& tamarin_output,
-                         TamarinHeuristic heuristic);
+TamarinHeuristic LemmaJob::GetHeuristic() const {
+  return heuristic_;
+}
 
-  std::string ToOutputString(TamarinHeuristic heuristic);
-
-  std::unique_ptr<LemmaProcessor> lemma_processor_;
-  std::shared_ptr<OutputWriter> output_writer_;
-  std::vector<TamarinHeuristic> all_heuristics_;
-  int timeout_;
-
-};
+void LemmaJob::SetHeuristic(TamarinHeuristic heuristic) {
+  heuristic_ = heuristic;
+}
 
 } // namespace uttamarin
-
-#endif

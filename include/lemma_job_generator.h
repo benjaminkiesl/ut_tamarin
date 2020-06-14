@@ -20,35 +20,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
-#define UT_TAMARIN_LEMMA_PROCESSOR_H_
+#ifndef UT_TAMARIN_LEMMA_JOB_GENERATOR_H_
+#define UT_TAMARIN_LEMMA_JOB_GENERATOR_H_
 
-#include <string>
+#include <vector>
+
+#include "lemma_job.h"
+#include "lemma_processor.h"
 
 namespace uttamarin {
 
-class LemmaJob;
+class LemmaJobGenerator {
 
-enum class ProverResult { True, False, Unknown };
-
-struct TamarinOutput {
-  ProverResult result;
-  int duration; // in seconds
-};
-
-class LemmaProcessor {
  public:
-  virtual ~LemmaProcessor() = default;
-
-  // Takes as input a  lemma job and then runs Tamarin with the information
-  // given by the lemma job. Returns some statistics (like Tamarin's result
-  // and the execution duration).
-  TamarinOutput ProcessLemma(const LemmaJob& lemma_job) {
-    DoProcessLemma(lemma_job);
-  }
+  virtual ~LemmaJobGenerator() = default;
+  std::vector<LemmaJob> GenerateLemmaJobs(){ return DoGenerateLemmaJobs(); };
 
  private:
-  virtual TamarinOutput DoProcessLemma(const LemmaJob& lemma_job) = 0;
+  virtual std::vector<LemmaJob> DoGenerateLemmaJobs() = 0;
 
 };
 

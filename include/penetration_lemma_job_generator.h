@@ -20,36 +20,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
-#define UT_TAMARIN_LEMMA_PROCESSOR_H_
+#ifndef UT_TAMARIN_PENETRATION_LEMMA_JOB_GENERATOR_H_
+#define UT_TAMARIN_PENETRATION_LEMMA_JOB_GENERATOR_H_
+
+#include "lemma_job_generator.h"
 
 #include <string>
+#include <vector>
+
+#include "ut_tamarin_config.h"
 
 namespace uttamarin {
 
-class LemmaJob;
+class PenetrationLemmaJobGenerator : public LemmaJobGenerator {
 
-enum class ProverResult { True, False, Unknown };
-
-struct TamarinOutput {
-  ProverResult result;
-  int duration; // in seconds
-};
-
-class LemmaProcessor {
  public:
-  virtual ~LemmaProcessor() = default;
+  PenetrationLemmaJobGenerator(const std::string& spthy_file_path,
+                               const std::string& lemma_name);
 
-  // Takes as input a  lemma job and then runs Tamarin with the information
-  // given by the lemma job. Returns some statistics (like Tamarin's result
-  // and the execution duration).
-  TamarinOutput ProcessLemma(const LemmaJob& lemma_job) {
-    DoProcessLemma(lemma_job);
-  }
+  virtual ~PenetrationLemmaJobGenerator() = default;
 
  private:
-  virtual TamarinOutput DoProcessLemma(const LemmaJob& lemma_job) = 0;
+  virtual std::vector<LemmaJob> DoGenerateLemmaJobs() override;
 
+  std::string spthy_file_path_;
+  std::string lemma_name_;
 };
 
 } // namespace uttamarin

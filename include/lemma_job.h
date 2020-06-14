@@ -20,36 +20,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#ifndef UT_TAMARIN_LEMMA_PROCESSOR_H_
-#define UT_TAMARIN_LEMMA_PROCESSOR_H_
+#ifndef UTTAMARIN_LEMMA_JOB_H_
+#define UTTAMARIN_LEMMA_JOB_H_
 
 #include <string>
 
 namespace uttamarin {
 
-class LemmaJob;
+enum class TamarinHeuristic { S, s, C, c, I, i, P, p, None };
 
-enum class ProverResult { True, False, Unknown };
-
-struct TamarinOutput {
-  ProverResult result;
-  int duration; // in seconds
-};
-
-class LemmaProcessor {
+class LemmaJob {
  public:
-  virtual ~LemmaProcessor() = default;
+  LemmaJob(std::string spthy_file_path,
+           std::string lemma_name,
+           const TamarinHeuristic& heuristic=TamarinHeuristic::None);
 
-  // Takes as input a  lemma job and then runs Tamarin with the information
-  // given by the lemma job. Returns some statistics (like Tamarin's result
-  // and the execution duration).
-  TamarinOutput ProcessLemma(const LemmaJob& lemma_job) {
-    DoProcessLemma(lemma_job);
-  }
+  const std::string GetSpthyFilePath() const;
+  void SetSpthyFilePath(const std::string& spthy_file_path);
+
+  const std::string GetLemmaName() const;
+  void SetLemmaName(const std::string& lemma_name);
+
+  TamarinHeuristic GetHeuristic() const;
+  void SetHeuristic(TamarinHeuristic heuristic);
 
  private:
-  virtual TamarinOutput DoProcessLemma(const LemmaJob& lemma_job) = 0;
-
+  std::string spthy_file_path_;
+  std::string lemma_name_;
+  TamarinHeuristic heuristic_;
 };
 
 } // namespace uttamarin

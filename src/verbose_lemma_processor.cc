@@ -27,6 +27,8 @@
 #include <memory>
 #include <utility>
 
+#include "lemma_job.h"
+
 using std::cout;
 using std::endl;
 using std::string;
@@ -48,30 +50,21 @@ VerboseLemmaProcessor::VerboseLemmaProcessor(
                                        decoratee_(std::move(decoratee)) {
 }
 
-TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const string& spthy_file_path,
-                                                    const string& lemma_name) {
+TamarinOutput VerboseLemmaProcessor::DoProcessLemma(const LemmaJob& lemma_job) {
   auto start_time = std::chrono::high_resolution_clock::now();
   std::future<TamarinOutput> f = std::async(&LemmaProcessor::ProcessLemma,
                                              decoratee_.get(),
-                                             spthy_file_path,
-                                             lemma_name);
+                                             lemma_job);
   do{
     auto seconds = DurationToString(
       std::chrono::duration_cast<std::chrono::seconds>(
          std::chrono::high_resolution_clock::now() - start_time).count());
-    cout << "\r" << lemma_name << " " << seconds << " " << std::flush;
+
+    cout << "\r" << lemma_job.GetLemmaName() << " "
+         << seconds << " " << std::flush;
   } while(f.wait_for(std::chrono::seconds(1)) != std::future_status::ready);
   cout << "\r";
   return f.get();
-}
-
-TamarinHeuristic VerboseLemmaProcessor::DoGetHeuristic() {
-  return decoratee_->GetHeuristic();
-}
-
-
-void VerboseLemmaProcessor::DoSetHeuristic(TamarinHeuristic heuristic) {
-  decoratee_->SetHeuristic(heuristic);
 }
 
 } // namespace uttamarin

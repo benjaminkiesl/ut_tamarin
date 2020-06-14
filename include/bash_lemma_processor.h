@@ -30,6 +30,8 @@
 
 namespace uttamarin {
 
+enum class TamarinHeuristic;
+
 class BashLemmaProcessor : public LemmaProcessor {
  public:
   BashLemmaProcessor(const std::string& proof_directory="",
@@ -37,21 +39,13 @@ class BashLemmaProcessor : public LemmaProcessor {
   virtual ~BashLemmaProcessor() = default;
 
  private:
-
   // Takes as input a  lemma name and then runs Tamarin on the given lemma.
   // Returns some output/statistics (like Tamarin's result and the execution
   // duration).
-  virtual TamarinOutput DoProcessLemma(const std::string& spthy_file_path,
-                                       const std::string& lemma_name) override;
-
-  // Returns the heuristics used by the Tamarin prover
-  virtual TamarinHeuristic DoGetHeuristic() override;
-
-  // Sets the heuristics to use by the Tamarin prover
-  virtual void DoSetHeuristic(TamarinHeuristic heuristic) override;
+  virtual TamarinOutput DoProcessLemma(const LemmaJob& lemma_job) override;
 
   // Returns a command line representation of the heuristic argument
-  std::string GetTamarinHeuristicArgument();
+  std::string GetTamarinHeuristicArgument(const TamarinHeuristic& heuristic);
 
   // Takes as input a stream of Tamarin output and the name of a lemma and
   // returns the result ("verified", "falsified", "analysis incomplete").
@@ -64,7 +58,6 @@ class BashLemmaProcessor : public LemmaProcessor {
 
   std::string proof_directory_;
   int timeout_;
-  TamarinHeuristic heuristic_;
 };
 
 } // namespace uttamarin
