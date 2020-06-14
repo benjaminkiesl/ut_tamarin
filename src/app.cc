@@ -79,7 +79,7 @@ bool App::RunOnLemmas(const vector<LemmaJob>& lemma_jobs,
     lemma_job.SetSpthyFilePath(preprocessed_spthy_file);
     auto output = lemma_processor_->ProcessLemma(lemma_job);
 
-    PrintLemmaResults(lemma_job, output);
+    PrintLemmaResults(lemma_job, output, i+1, lemma_jobs.size());
 
     overall_duration += output.duration;
     count_of[output.result]++;
@@ -111,7 +111,9 @@ void App::PrintHeader(const CmdParameters& parameters) {
 }
 
 void App::PrintLemmaResults(const LemmaJob& lemma_job,
-                            const TamarinOutput& tamarin_output) {
+                            const TamarinOutput& tamarin_output,
+                            int lemma_number,
+                            int number_of_lemmas) {
   *output_writer_ << lemma_job.GetLemmaName() << " ";
   if(tamarin_output.result == ProverResult::True) {
     output_writer_->WriteColorized("verified", TextColor::Green);
@@ -125,6 +127,7 @@ void App::PrintLemmaResults(const LemmaJob& lemma_job,
     *output_writer_ << " heuristic="
                     << ToOutputString(lemma_job.GetHeuristic());
   }
+  *output_writer_ << " (" << lemma_number << "/" << number_of_lemmas << ")";
   output_writer_->Endl();
 }
 

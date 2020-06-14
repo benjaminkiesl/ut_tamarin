@@ -74,7 +74,9 @@ class App {
   void PrintHeader(const CmdParameters& parameters);
 
   void PrintLemmaResults(const LemmaJob& lemma_job,
-                         const TamarinOutput& tamarin_output);
+                         const TamarinOutput& tamarin_output,
+                         int lemma_number,
+                         int number_of_lemmas);
 
   // Prints the footer for the Tamarin output based on the given command line
   // parameters.
