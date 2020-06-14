@@ -35,30 +35,6 @@ namespace uttamarin {
 
 const string kTamarinTempfilePath = "/tmp/uttamarintemp.ut";
 
-string to_string(const ProverResult& prover_result, bool is_colorized) {
-  string result_string = "";
-  switch(prover_result) {
-    case ProverResult::True: result_string = "verified"; break;
-    case ProverResult::False: result_string = "false"; break;
-    case ProverResult::Unknown: result_string = "timeout";
-  }
-
-  if(is_colorized) {
-    string prefix = "\033[";
-    string color_code = prover_result == ProverResult::True ?
-      "32" : prover_result == ProverResult::False ? "31" : "33";
-    result_string = prefix + color_code + "m" + result_string + "\033[m";
-  }
-  return result_string;
-}
-
-string to_string(const TamarinOutput& tamarin_output,
-                 bool is_colorized) {
-  string formatted = to_string(tamarin_output.result, is_colorized);
-  formatted += " (" + ToSecondsString(tamarin_output.duration) + ")";
-  return formatted;
-}
-
 // Takes as input a line of the Tamarin output (a line that shows the Tamarin
 // result for a particular lemma) and returns the name of the lemma.
 string ExtractLemmaName(string line) {
@@ -66,18 +42,11 @@ string ExtractLemmaName(string line) {
   return line.substr(0, line.find(' '));
 }
 
-string RunTamarinAndWriteOutputToNewTempfile(const string& spthy_file_path,
-                                             const string& tamarin_parameters) {
-  ExecuteShellCommand("tamarin-prover " + tamarin_parameters +
-                      spthy_file_path + " 1> " + kTamarinTempfilePath +
-                      " 2> /dev/null");
-  return kTamarinTempfilePath;
-}
-
 vector<string> ReadLemmaNamesFromSpthyFile(const string& spthy_file_path) {
-  auto temp_file = RunTamarinAndWriteOutputToNewTempfile(spthy_file_path);
+  ExecuteShellCommand("tamarin-prover "  + spthy_file_path +
+                      " 1> " + kTamarinTempfilePath + " 2> /dev/null");
 
-  std::ifstream tamarin_stream {temp_file, std::ifstream::in};
+  std::ifstream tamarin_stream {kTamarinTempfilePath, std::ifstream::in};
   vector<string> lemma_names;
   string line;
 
@@ -91,7 +60,7 @@ vector<string> ReadLemmaNamesFromSpthyFile(const string& spthy_file_path) {
   }
 
   // Remove temp file
-  std::remove(temp_file.c_str());
+  std::remove(kTamarinTempfilePath.c_str());
 
   return lemma_names;
 }

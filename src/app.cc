@@ -70,16 +70,16 @@ bool App::RunTamarinOnLemmas(const CmdParameters& parameters) {
                                               parameters.starting_lemma);
 
   bool success = true;
-
   unordered_map<ProverResult, int> count_of;
   int overall_duration = 0;
+
   for(int i=0;i < lemma_names.size();i++) {
     auto preprocessed_spthy_file =
             theory_preprocessor_->PreprocessAndReturnPathToResultingFile(
                     parameters.spthy_file_path, lemma_names[i]);
 
     auto output = lemma_processor_->ProcessLemma(preprocessed_spthy_file,
-                                                lemma_names[i]);
+                                                 lemma_names[i]);
     PrintLemmaResults(lemma_names[i], output, lemma_processor_->GetHeuristic());
 
     overall_duration += output.duration;
@@ -133,9 +133,9 @@ void App::PrintFooter(int true_lemmas, int false_lemmas,
                       int unknown_lemmas, int overall_duration) {
   *output_writer_ << "\n"
     << "Summary: " << "\n"
-    << to_string(ProverResult::True) << ": " << true_lemmas
-    << ", " << to_string(ProverResult::False) << ": " << false_lemmas
-    << ", " << to_string(ProverResult::Unknown) << ": " << unknown_lemmas
+    << "verified: " << true_lemmas
+    << ", false: " << ": " << false_lemmas
+    << ", timeout: " << unknown_lemmas
     << "\n"
     << "Overall duration: " << ToSecondsString(overall_duration);
   output_writer_->Endl();

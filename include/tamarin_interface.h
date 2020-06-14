@@ -28,29 +28,12 @@
 
 namespace uttamarin {
 
-enum class ProverResult { True, False, Unknown };
-
-struct TamarinOutput {
-  ProverResult result;
-  int duration; // in seconds
-};
-
-// Converts a given ProverResult to a string. If the parameter 'is_colorized'
-// is true, then the string is colored using color codes for the bash
-std::string to_string(const ProverResult& prover_result,
-                      bool is_colorized=false);
-
-// Converts a given TamarinOutput into a string. If the parameter 'is_colorized'
-// is true, then the string is colored using color codes for the bash
-std::string to_string(const TamarinOutput& tamarin_output,
-                      bool is_colorized=false);
-
-// Executes Tamarin with the given parameters and writes the needed output to
-// a temp file while relocating the other output to /dev/null.  Returns the
-// path to the resulting temp file.
-std::string RunTamarinAndWriteOutputToNewTempfile(
-        const std::string& spthy_file_path,
-        const std::string& tamarin_parameters="");
+//// Executes Tamarin with the given parameters and writes the needed output to
+//// a temp file while relocating the other output to /dev/null.  Returns the
+//// path to the resulting temp file.
+//std::string RunTamarinAndWriteOutputToNewTempfile(
+//        const std::string& spthy_file_path,
+//        const std::string& tamarin_parameters="");
 
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
 // containing all the names of the lemmas specified in the file.

@@ -31,6 +31,13 @@ namespace uttamarin {
 
 enum class TamarinHeuristic {S, s, C, c, I, i, P, p, None};
 
+enum class ProverResult { True, False, Unknown };
+
+struct TamarinOutput {
+  ProverResult result;
+  int duration; // in seconds
+};
+
 class LemmaProcessor {
  public:
   virtual ~LemmaProcessor() = default;
