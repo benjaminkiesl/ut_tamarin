@@ -37,7 +37,7 @@ PenetrationLemmaJobGenerator::PenetrationLemmaJobGenerator(
                              const string& spthy_file_path,
                              const string& lemma_name) :
                               spthy_file_path_(spthy_file_path),
-                              lemma_name_(lemma_name_){
+                              lemma_name_(lemma_name){
 
 }
 

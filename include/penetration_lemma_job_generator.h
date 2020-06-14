@@ -28,8 +28,6 @@
 #include <string>
 #include <vector>
 
-#include "ut_tamarin_config.h"
-
 namespace uttamarin {
 
 class PenetrationLemmaJobGenerator : public LemmaJobGenerator {

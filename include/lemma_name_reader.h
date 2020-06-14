@@ -28,13 +28,6 @@
 
 namespace uttamarin {
 
-//// Executes Tamarin with the given parameters and writes the needed output to
-//// a temp file while relocating the other output to /dev/null.  Returns the
-//// path to the resulting temp file.
-//std::string RunTamarinAndWriteOutputToNewTempfile(
-//        const std::string& spthy_file_path,
-//        const std::string& tamarin_parameters="");
-
 // Takes as input a Tamarin theory file (".spthy") and returns a vector
 // containing all the names of the lemmas specified in the file.
 std::vector<std::string> ReadLemmaNamesFromSpthyFile(

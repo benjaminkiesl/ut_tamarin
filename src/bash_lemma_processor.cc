@@ -81,7 +81,8 @@ string BashLemmaProcessor::GetTamarinHeuristicArgument(
     case TamarinHeuristic::s: return "s";
     case TamarinHeuristic::I: return "I";
     case TamarinHeuristic::i: return "i";
-    case TamarinHeuristic::C: return "c";
+    case TamarinHeuristic::C: return "C";
+    case TamarinHeuristic::c: return "c";
     case TamarinHeuristic::P: return "P";
     case TamarinHeuristic::p: return "p";
     case TamarinHeuristic::None: return "";
