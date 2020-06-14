@@ -29,9 +29,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "lemma_name_reader.h"
 #include "lemma_processor.h"
 #include "output_writer.h"
-#include "tamarin_interface.h"
 #include "theory_preprocessor.h"
 #include "ut_tamarin_config.h"
 #include "utility.h"

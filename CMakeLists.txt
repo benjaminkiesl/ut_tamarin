@@ -16,10 +16,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 add_library(lib_uttamarin STATIC 
   src/app.cc
   src/bash_lemma_processor.cc
+  src/lemma_name_reader.cc
   src/lemma_penetrator.cc
   src/m4_theory_preprocessor.cc
   src/output_writer.cc
-  src/tamarin_interface.cc
   src/terminator.cc
   src/utility.cc
   src/ut_tamarin_config.cc

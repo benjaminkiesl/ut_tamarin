@@ -30,8 +30,6 @@
 #include <memory>
 #include <string>
 
-#include "tamarin_interface.h"
-
 namespace uttamarin {
 
 class VerboseLemmaProcessor : public LemmaProcessor {

@@ -26,7 +26,6 @@
 #include <fstream>
 #include <string>
 
-#include "tamarin_interface.h"
 #include "utility.h"
 
 using std::ifstream;

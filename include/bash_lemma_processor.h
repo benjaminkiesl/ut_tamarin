@@ -28,8 +28,6 @@
 #include <istream>
 #include <string>
 
-#include "tamarin_interface.h"
-
 namespace uttamarin {
 
 class BashLemmaProcessor : public LemmaProcessor {

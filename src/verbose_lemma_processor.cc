@@ -27,8 +27,6 @@
 #include <memory>
 #include <utility>
 
-#include "tamarin_interface.h"
-
 using std::cout;
 using std::endl;
 using std::string;

@@ -25,8 +25,6 @@
 
 #include <string>
 
-#include "tamarin_interface.h"
-
 namespace uttamarin {
 
 enum class TamarinHeuristic {S, s, C, c, I, i, P, p, None};

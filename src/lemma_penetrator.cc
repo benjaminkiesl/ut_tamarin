@@ -27,9 +27,9 @@
 #include <string>
 #include <vector>
 
+#include "lemma_name_reader.h"
 #include "lemma_processor.h"
 #include "output_writer.h"
-#include "tamarin_interface.h"
 #include "utility.h"
 
 using std::cout;

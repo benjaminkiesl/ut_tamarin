@@ -20,7 +20,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 
-#include "tamarin_interface.h"
+#include "lemma_name_reader.h"
 
 #include <fstream>
 #include <string>

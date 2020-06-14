@@ -29,7 +29,6 @@
 #include <vector>
 
 #include "lemma_processor.h"
-#include "tamarin_interface.h"
 
 namespace uttamarin {
 
