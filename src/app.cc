@@ -132,7 +132,7 @@ void App::PrintFooter(int true_lemmas, int false_lemmas,
   *output_writer_ << "\n"
     << "Summary: " << "\n"
     << "verified: " << true_lemmas
-    << ", false: " << ": " << false_lemmas
+    << ", false: " << false_lemmas
     << ", timeout: " << unknown_lemmas
     << "\n"
     << "Overall duration: " << ToSecondsString(overall_duration);
