@@ -36,6 +36,7 @@ struct CmdParameters {
   std::string proof_directory;
   int timeout;
   bool abort_after_failure;
+  bool is_quiet;
 };
 
 } // namespace uttamarin

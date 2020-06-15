@@ -74,6 +74,11 @@ int main (int argc, char *argv[])
                parameters.abort_after_failure,
                "Tells the tool to abort if Tamarin fails to prove a lemma.");
 
+  parameters.is_quiet = false;
+  cli.add_flag("-q,--quiet",
+               parameters.is_quiet,
+               "Disables the timer on the command line.");
+
   parameters.config_file_path = "";
   cli.add_option("-c,--config_file", parameters.config_file_path,
                  "Configuration file for UT Tamarin."
@@ -104,10 +109,15 @@ int main (int argc, char *argv[])
 
   auto config = std::make_shared<UtTamarinConfig>(parameters);
 
-  auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
+  std::unique_ptr<LemmaProcessor> lemma_processor =
           std::make_unique<BashLemmaProcessor>(
                   parameters.proof_directory,
-                  parameters.timeout));
+                  parameters.timeout);
+
+  if(!parameters.is_quiet) {
+    lemma_processor =
+          std::make_unique<VerboseLemmaProcessor>(std::move(lemma_processor));
+  }
 
   auto theory_preprocessor = std::make_unique<M4TheoryPreprocessor>(config);
 
