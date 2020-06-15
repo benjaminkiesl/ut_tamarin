@@ -43,6 +43,10 @@ BashLemmaProcessor::BashLemmaProcessor(const string& proof_directory,
                                        timeout_(timeout) {
 }
 
+BashLemmaProcessor::~BashLemmaProcessor() {
+  std::remove(kTempPath.c_str());
+}
+
 TamarinOutput BashLemmaProcessor::DoProcessLemma(const LemmaJob& lemma_job) {
   string cmd = "timeout " + std::to_string(timeout_) + " ";
 

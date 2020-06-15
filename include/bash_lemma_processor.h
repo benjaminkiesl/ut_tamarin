@@ -36,7 +36,7 @@ class BashLemmaProcessor : public LemmaProcessor {
  public:
   BashLemmaProcessor(const std::string& proof_directory="",
                      const int timeout=600);
-  virtual ~BashLemmaProcessor() = default;
+  virtual ~BashLemmaProcessor();
 
  private:
   // Takes as input a  lemma name and then runs Tamarin on the given lemma.

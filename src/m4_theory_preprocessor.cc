@@ -22,6 +22,8 @@
 
 #include "m4_theory_preprocessor.h"
 
+#include <cstdio>
+
 #include <fstream>
 #include <memory>
 #include <string>
@@ -41,10 +43,12 @@ const string kM4TempfilePath = "/tmp/temp.m4";
 
 M4TheoryPreprocessor::M4TheoryPreprocessor(
         std::shared_ptr<UtTamarinConfig> config) : config_(config) {
-
+  std::remove(kM4TempfilePath.c_str());
 }
 
-M4TheoryPreprocessor::~M4TheoryPreprocessor() = default;
+M4TheoryPreprocessor::~M4TheoryPreprocessor() {
+
+}
 
 std::string M4TheoryPreprocessor::DoPreprocessAndReturnPathToResultingFile(
                   const std::string& spthy_file_path,
@@ -69,6 +73,8 @@ std::string M4TheoryPreprocessor::DoPreprocessAndReturnPathToResultingFile(
 
   ExecuteShellCommand("m4 " + kM4TempfilePath + " > " +
                       kPreprocessedTempfilePath);
+
+  std::remove(kM4TempfilePath.c_str());
 
   return kPreprocessedTempfilePath;
 }
