@@ -54,11 +54,11 @@ vector<LemmaJob> DefaultLemmaJobGenerator::DoGenerateLemmaJobs() {
 
 vector<string> DefaultLemmaJobGenerator::GetNamesOfLemmasToVerify() {
   auto lemmas = ReadLemmaNamesFromSpthyFile(spthy_file_path_);
-  if(!config_->lemma_allow_list.empty()) {
-    lemmas = GetLemmasInAllowList(lemmas, config_->lemma_allow_list);
+  if(!config_->GetLemmaAllowList().empty()) {
+    lemmas = GetLemmasInAllowList(lemmas, config_->GetLemmaAllowList());
   }
-  if(!config_->lemma_deny_list.empty()) {
-    lemmas = RemoveLemmasInDenyList(lemmas, config_->lemma_deny_list);
+  if(!config_->GetLemmaDenyList().empty()) {
+    lemmas = RemoveLemmasInDenyList(lemmas, config_->GetLemmaDenyList());
   }
   if(starting_lemma_ != "") {
     lemmas = RemoveLemmasBeforeStart(lemmas, starting_lemma_);

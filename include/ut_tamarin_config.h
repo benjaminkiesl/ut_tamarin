@@ -32,34 +32,55 @@
 
 namespace uttamarin {
 
+struct CmdParameters;
+
 struct FactAnnotations { 
   std::vector<std::string> important_facts; 
   std::vector<std::string> unimportant_facts; 
   std::vector<std::string> neutral_facts;
-  
-  bool ContainFact(const std::string& fact) const;
 };
 
-struct UtTamarinConfig {
-  std::vector<std::string> lemma_deny_list;
-  std::vector<std::string> lemma_allow_list;
-  FactAnnotations global_annotations; 
-  std::unordered_map<std::string, FactAnnotations> lemma_annotations; 
-  
+class UtTamarinConfig {
+
+ public:
+  UtTamarinConfig(const CmdParameters& cmd_parameters);
+
   // Returns true if the given fact 'fact' is annotated locally for the given
   // lemma 'lemma_name'. Here, a local annotation means that the scope of the 
   // annotation is only the lemma itself and not the whole Tamarin theory file.
   bool FactIsAnnotatedLocally(const std::string& fact, 
                               const std::string& lemma_name) const;
+
+  std::string GetSpthyFilePath() const;
+  std::string GetConfigFilePath() const;
+  std::string GetOutputFilePath() const;
+  std::string GetStartingLemma() const;
+  std::string GetPenetrationLemma() const;
+  std::string GetProofDirectory() const;
+  int GetTimeout() const;
+  bool IsAbortAfterFailure() const;
+  const std::vector<std::string>& GetLemmaAllowList() const;
+  const std::vector<std::string>& GetLemmaDenyList() const;
+  const FactAnnotations& GetGlobalAnnotations() const;
+  FactAnnotations GetLocalAnnotations(const std::string& lemma) const;
+
+ private:
+  void ParseJsonConfigFile(const std::string& config_file_path);
+  static FactAnnotations GetFactAnnotations(nlohmann::json json_annotation);
+
+  std::string spthy_file_path_;
+  std::string config_file_path_;
+  std::string output_file_path_;
+  std::string starting_lemma_;
+  std::string penetration_lemma_;
+  std::string proof_directory_;
+  int timeout_;
+  bool abort_after_failure_;
+  std::vector<std::string> lemma_allow_list_;
+  std::vector<std::string> lemma_deny_list_;
+  FactAnnotations global_annotations_;
+  std::unordered_map<std::string, FactAnnotations> local_annotations_;
 };
-
-// Takes as input the path of the Tamarin config file and returns an object
-// representing the configuration options defined in the config file.
-std::shared_ptr<UtTamarinConfig> ParseUtTamarinConfigFile(
-        const std::string& config_file_path);
-
-// Gets the fact annotations from a JSON annotation.
-FactAnnotations GetFactAnnotations(nlohmann::json json_annotation);
 
 } // namespace uttamarin
 

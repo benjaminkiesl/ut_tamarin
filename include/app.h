@@ -38,19 +38,8 @@ struct LemmaJob;
 struct UtTamarinConfig;
 struct TamarinOutput;
 
-enum class ProverResult;
+//enum class ProverResult;
 enum class TamarinHeuristic;
-
-struct CmdParameters { 
-  std::string spthy_file_path;
-  std::string config_file_path; 
-  std::string output_file_path; 
-  std::string starting_lemma; 
-  std::string penetration_lemma; 
-  std::string proof_directory; 
-  int timeout; 
-  bool abort_after_failure; 
-};
 
 class App {
 
@@ -63,23 +52,18 @@ class App {
   ~App();
 
   // Runs Tamarin on lemmas in the given spthy file. The actual choice of
-  // lemmas depends on the command-line parameters. Returns true if Tamarin is
+  // lemmas depends on the configuration parameters. Returns true if Tamarin is
   // able to prove all lemmas.
-  bool RunOnLemmas(const std::vector<LemmaJob>& lemma_jobs,
-                   const CmdParameters& parameters);
+  bool RunOnLemmas(const std::vector<LemmaJob>& lemma_jobs);
 
  private:
-  // Prints the header for the Tamarin output based on the given command line
-  // parameters.
-  void PrintHeader(const CmdParameters& parameters);
+  void PrintHeader();
 
   void PrintLemmaResults(const LemmaJob& lemma_job,
                          const TamarinOutput& tamarin_output,
                          int lemma_number,
                          int number_of_lemmas);
 
-  // Prints the footer for the Tamarin output based on the given command line
-  // parameters.
   void PrintFooter(int true_lemmas, int false_lemmas,
                    int unknown_lemmas, int overall_duration);
 

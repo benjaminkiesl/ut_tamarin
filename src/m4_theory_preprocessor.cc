@@ -84,25 +84,23 @@ vector<string> M4TheoryPreprocessor::GetM4Commands(const string& lemma_name) {
 
   vector<string> m4_commands;
 
-  for(string fact : config_->global_annotations.important_facts) {
+  for(string fact : config_->GetGlobalAnnotations().important_facts) {
     if(!config_->FactIsAnnotatedLocally(fact, lemma_name)) {
       m4_commands.emplace_back(AddPrefixViaM4(important_prefix, fact));
     }
   }
 
-  for(string fact : config_->global_annotations.unimportant_facts) {
+  for(string fact : config_->GetGlobalAnnotations().unimportant_facts) {
     if(!config_->FactIsAnnotatedLocally(fact, lemma_name)) {
       m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
     }
   }
 
-  if(config_->lemma_annotations.count(lemma_name)) {
-    for(string fact : config_->lemma_annotations.at(lemma_name).important_facts)
-      m4_commands.emplace_back(AddPrefixViaM4(important_prefix, fact));
+  for(string fact : config_->GetLocalAnnotations(lemma_name).important_facts)
+    m4_commands.emplace_back(AddPrefixViaM4(important_prefix, fact));
 
-    for(string fact : config_->lemma_annotations.at(lemma_name).unimportant_facts)
-      m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
-  }
+  for(string fact : config_->GetLocalAnnotations(lemma_name).unimportant_facts)
+    m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
 
   return m4_commands;
 }

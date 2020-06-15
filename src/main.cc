@@ -29,6 +29,7 @@
 
 #include "app.h"
 #include "bash_lemma_processor.h"
+#include "cmd_parameters.h"
 #include "default_lemma_job_generator.h"
 #include "m4_theory_preprocessor.h"
 #include "output_writer.h"
@@ -101,9 +102,7 @@ int main (int argc, char *argv[])
 
   CLI11_PARSE(cli, argc, argv);
 
-  auto config = parameters.config_file_path == "" ?
-                std::make_shared<UtTamarinConfig>() :
-                ParseUtTamarinConfigFile(parameters.config_file_path);
+  auto config = std::make_shared<UtTamarinConfig>(parameters);
 
   auto lemma_processor = std::make_unique<VerboseLemmaProcessor>(
           std::make_unique<BashLemmaProcessor>(
@@ -127,7 +126,7 @@ int main (int argc, char *argv[])
 
   auto lemma_job_generator = CreateLemmaJobGenerator(parameters, config);
 
-  app.RunOnLemmas(lemma_job_generator->GenerateLemmaJobs(), parameters);
+  app.RunOnLemmas(lemma_job_generator->GenerateLemmaJobs());
 
   return 0;
 }

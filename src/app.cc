@@ -22,15 +22,12 @@
 
 #include "app.h"
 
-#include <algorithm>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "lemma_job.h"
-#include "lemma_name_reader.h"
 #include "lemma_processor.h"
 #include "output_writer.h"
 #include "theory_preprocessor.h"
@@ -62,9 +59,8 @@ App::App(unique_ptr<LemmaProcessor> lemma_processor,
 
 App::~App() = default;
 
-bool App::RunOnLemmas(const vector<LemmaJob>& lemma_jobs,
-                      const CmdParameters& parameters) {
-  PrintHeader(parameters);
+bool App::RunOnLemmas(const vector<LemmaJob>& lemma_jobs) {
+  PrintHeader();
 
   bool success = true;
   unordered_map<ProverResult, int> count_of;
@@ -86,7 +82,7 @@ bool App::RunOnLemmas(const vector<LemmaJob>& lemma_jobs,
     std::remove(preprocessed_spthy_file.c_str());
     if(output.result != ProverResult::True) {
       success = false;
-      if(parameters.abort_after_failure) break;
+      if(config_->IsAbortAfterFailure()) break;
     }
   }
 
@@ -96,15 +92,15 @@ bool App::RunOnLemmas(const vector<LemmaJob>& lemma_jobs,
   return success;
 }
 
-void App::PrintHeader(const CmdParameters& parameters) {
-  auto file_name = parameters.spthy_file_path;
+void App::PrintHeader() {
+  auto file_name = config_->GetSpthyFilePath();
   if(file_name.find('/') != string::npos) {
     file_name = file_name.substr(file_name.find_last_of('/') + 1);
   }
 
   *output_writer_ << "Tamarin Tests for file '" << file_name << "':\n"
-    << "Timeout: " << (parameters.timeout <= 0 ?
-    "no timeout" : ToSecondsString(parameters.timeout))
+    << "Timeout: " << (config_->GetTimeout() <= 0 ?
+    "no timeout" : ToSecondsString(config_->GetTimeout()))
     << " per lemma\n";
 
   output_writer_->Endl();
