@@ -110,9 +110,8 @@ int main (int argc, char *argv[])
   auto config = std::make_shared<UtTamarinConfig>(parameters);
 
   std::unique_ptr<LemmaProcessor> lemma_processor =
-          std::make_unique<BashLemmaProcessor>(
-                  parameters.proof_directory,
-                  parameters.timeout);
+          std::make_unique<BashLemmaProcessor>(parameters.proof_directory,
+                                               parameters.timeout);
 
   if(!parameters.is_quiet) {
     lemma_processor =
