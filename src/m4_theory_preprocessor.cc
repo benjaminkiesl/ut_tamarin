@@ -22,8 +22,6 @@
 
 #include "m4_theory_preprocessor.h"
 
-#include <cstdio>
-
 #include <fstream>
 #include <memory>
 #include <string>

@@ -48,16 +48,16 @@ class M4TheoryPreprocessor : public TheoryPreprocessor {
                   const std::string& spthy_file_path,
                   const std::string& lemma_name) override;
 
-  // Takes a string 'prefix' and a string 'original' and returns a command that
-  // tells the tool M4 to prepend 'prefix' to 'original'.
-  std::string AddPrefixViaM4(const std::string& prefix,
-                             const std::string& original);
-
   // Takes as input the name of a lemma and a tamarin configuration and returns
   // a list of commands for the tool M4. These commands tell M4 to rename
   // certain fact symbols within the Tamarin theory file in order to apply
   // custom heuristics.
   std::vector<std::string> GetM4Commands(const std::string& lemma_name);
+
+  // Takes a string 'prefix' and a string 'original' and returns a command that
+  // tells the tool M4 to prepend 'prefix' to 'original'.
+  std::string AddPrefixViaM4(const std::string& prefix,
+                             const std::string& original);
 
   std::shared_ptr<UtTamarinConfig> config_;
 };

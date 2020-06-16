@@ -34,10 +34,6 @@
 #include "ut_tamarin_config.h"
 #include "utility.h"
 
-using std::cerr;
-using std::cout;
-using std::endl;
-using std::ostream;
 using std::shared_ptr;
 using std::string;
 using std::unique_ptr;

@@ -23,7 +23,6 @@
 #ifndef UT_TAMARIN_APP_H_ 
 #define UT_TAMARIN_APP_H_
 
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,7 +37,6 @@ struct LemmaJob;
 struct UtTamarinConfig;
 struct TamarinOutput;
 
-//enum class ProverResult;
 enum class TamarinHeuristic;
 
 class App {

@@ -30,15 +30,11 @@ namespace uttamarin {
 
 struct TamarinOutput;
 
-// Takes a duration in seconds and converts it into a string saying "duration
-// seconds"
-std::string ToSecondsString(int duration);
-
 // Computes the edit distance between two strings A and B
 int EditDistance(const std::string& A, const std::string B);
 
 // Takes a list of lemma names and a candidate name and returns the lemma
-// from the list whose name is closes to the candidate name.
+// from the list whose name is closest to the candidate name.
 std::string GetStringWithShortestEditDistance(
         const std::vector<std::string>& candidates,
         const std::string& target);
@@ -46,6 +42,10 @@ std::string GetStringWithShortestEditDistance(
 // Executes a shell command and returns the duration of the execution in
 // seconds.
 int ExecuteShellCommand(const std::string& cmd);
+
+// Takes a duration in seconds and converts it into a string saying "duration
+// seconds"
+std::string ToSecondsString(int duration);
 
 } // namespace uttamarin
 
