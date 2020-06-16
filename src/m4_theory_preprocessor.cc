@@ -52,15 +52,13 @@ std::string M4TheoryPreprocessor::DoPreprocessAndReturnPathToResultingFile(
                   const std::string& spthy_file_path,
                   const std::string& lemma_name) {
 
-  auto m4_commands = GetM4Commands(lemma_name);
-
   ofstream tempfile_m4{kM4TempfilePath};
 
   // Change quotes for M4, otherwise single quotes in spthy file lead to M4 bugs
   tempfile_m4 << "changequote(<!,!>)" << std::endl;
   tempfile_m4 << "changecom(<!/*!>, <!*/!>)" << std::endl;
 
-  for(auto m4_command : m4_commands) {
+  for(auto m4_command : GetM4Commands(lemma_name)) {
     tempfile_m4 << m4_command << std::endl;
   }
 
