@@ -77,11 +77,6 @@ std::string M4TheoryPreprocessor::DoPreprocessAndReturnPathToResultingFile(
   return kPreprocessedTempfilePath;
 }
 
-string M4TheoryPreprocessor::AddPrefixViaM4(const string& prefix,
-                                            const string& original) {
-  return "define(" + original + ", " + prefix + original + "($*))";
-}
-
 vector<string> M4TheoryPreprocessor::GetM4Commands(const string& lemma_name) {
   const string important_prefix = "F_";
   const string unimportant_prefix = "L_";
@@ -107,6 +102,11 @@ vector<string> M4TheoryPreprocessor::GetM4Commands(const string& lemma_name) {
     m4_commands.emplace_back(AddPrefixViaM4(unimportant_prefix, fact));
 
   return m4_commands;
+}
+
+string M4TheoryPreprocessor::AddPrefixViaM4(const string& prefix,
+                                            const string& original) {
+  return "define(" + original + ", " + prefix + original + "($*))";
 }
 
 } // namespace uttamarin
