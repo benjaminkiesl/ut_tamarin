@@ -34,6 +34,6 @@ void sigint_handler(int signal);
 // in case the program receives a SIGINT signal (sent by Ctrl+C).
 void registerSIGINTHandler();
 
-} // namespace uttamarin::terminator
+} // namespace uttamarin::termination
 
 #endif
