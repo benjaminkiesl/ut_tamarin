@@ -33,13 +33,11 @@ To run UT Tamarin, just execute the following command from the shell (assuming t
 * `INPUT_TAMARIN_FILE` is the path to a Tamarin theory file (i.e., a .spthy file)
 * `CONFIG_FILE` is the path to a JSON file that contains configuration options for UT Tamarin such as the list of lemmas that should be proved or dedicated custom heuristics. See below for details.
 
-For example, if your Tamarin theory file is the file test_protocol.spthy (located in the directory from which you call UT Tamarin) and your JSON configuration file is the file utt_config.json, then you would call UT Tamarin as follows:
+For example, if your Tamarin theory file is the file *test_protocol.spthy* (located in the directory from which you call UT Tamarin) and your JSON configuration file is the file *utt_config.json*, then you would call UT Tamarin as follows:
 
 `./uttamarin test_protocol.spthy --config_file=utt_config.json`
 
 Further arguments, such as a dedicated timeout for Tamarin (default is ten minutes) can be passed to UT Tamarin. For details call `./uttamarin --help`.
-
-Finally, make sure you have write access to the directory from which you call uttamarin because uttamarin produces temporary files in that directory.
 
 ### Specifying Configuration Options of UT Tamarin
 
