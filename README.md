@@ -65,6 +65,7 @@ The following is a sample JSON configuration for UT Tamarin that should be self-
 	"lemma_annotations": [
 		{	
 			"lemma_name": "some_statement",
+			"important_facts": ["RandomFact"],
 			"neutral_facts": ["OtherFact"]
 		},
 		{	
