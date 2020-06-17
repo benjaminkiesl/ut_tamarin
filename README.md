@@ -14,7 +14,7 @@ Lemma lists and dedicated heuristics can be specified in a JSON configuration fi
 
 ### Prerequisites
 
-To build UT Tamarin, you need [GNU Make](https://www.gnu.org/software/make/), [CMake](https://cmake.org/), and the [G++ compiler](https://gcc.gnu.org/) (version 7.5 or newer).
+To build UT Tamarin, you need [GNU Make](https://www.gnu.org/software/make/), [CMake](https://cmake.org/), and the G++ compiler of the [GNU Compiler Collection](https://gcc.gnu.org/) (version 7.5 or newer).
 
 To run UT Tamarin, you need an installed version of the [GNU M4 macro processor](https://www.gnu.org/software/m4/) and of Tamarin (find installation instructions [here](https://tamarin-prover.github.io/manual/book/002_installation.html)). UT Tamarin assumes that Tamarin is in your PATH, meaning that it can be executed by calling `tamarin-prover`. Since Tamarin doesn't run on Windows, neither does UT Tamarin.
 
