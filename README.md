@@ -43,8 +43,8 @@ Further arguments, such as a dedicated timeout for Tamarin (default is ten minut
 
 UT Tamarin allows you to specify configuration options via a JSON file that you then pass to UT Tamarin as explained above. Such a JSON file can contain:
 
-* An allow list of lemmas: If you specify an allow list, then only those lemmas from the Tamarin theory file are proved that are also in the allow list. 
-* A deny list of lemmas: If you specify a deny list, then all lemmas from the deny list are ignored when running UT Tamarin.
+* An *allow list* of lemmas: If you specify an allow list, then only those lemmas from the Tamarin theory file are proved that are also in the allow list. 
+* A *deny list* of lemmas: If you specify a deny list, then all lemmas from the deny list are ignored when running UT Tamarin.
 * Global fact annotations: These annotations list fact symbols within your Tamarin theory file that should have a higher or lower priority in the heuristics. UT Tamarin enforces these priority declarations by adding either the prefix `F_` (higher priority) or `L_` (lower priority) to a fact symbol before calling Tamarin (no worries, the original spthy file is not changed).
 * Local fact annotations: They work like global fact annotations with the only difference that they can be applied to specific lemmas (instead of all lemmas in the theory file). Local fact annotations overrule global fact annotations. Moreover, local fact annotations can assign a "neutral" priority (this can be useful when you want to remove a global fact annotation for a specific lemma).
 
