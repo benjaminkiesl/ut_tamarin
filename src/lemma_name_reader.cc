@@ -43,19 +43,22 @@ string ExtractLemmaName(string line) {
 }
 
 vector<string> ReadLemmaNamesFromSpthyFile(const string& spthy_file_path) {
-  ExecuteShellCommand("tamarin-prover "  + spthy_file_path +
-                      " 1> " + kTamarinTempfilePath + " 2> /dev/null");
+  string tamarin_command = "tamarin-prover "  + spthy_file_path + 
+    " 1> " + kTamarinTempfilePath + " 2> /dev/null";
+  ExecuteShellCommand(tamarin_command);
 
   std::ifstream tamarin_stream {kTamarinTempfilePath, std::ifstream::in};
   vector<string> lemma_names;
   string line;
 
   // Move stream to begin of lemma names
-  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
-  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
+  while(std::getline(tamarin_stream, line) && 
+        (line.size() < 5 || line.substr(0,5) != "====="));
 
   // Read lemma names
-  while(std::getline(tamarin_stream, line) && line != "") {
+  while(std::getline(tamarin_stream, line) && 
+      !(line.size() >= 5 && line.substr(0,5) == "=====")) {
+      if(line.find("steps)") == std::string::npos) continue;
     lemma_names.push_back(ExtractLemmaName(line));
   }
 
