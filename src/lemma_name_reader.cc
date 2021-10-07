@@ -51,7 +51,7 @@ vector<string> ReadLemmaNamesFromSpthyFile(const string& spthy_file_path) {
   vector<string> lemma_names;
   string line;
 
-  // Move stream to begin of lemma names
+  // Move stream to begin of lemma name section
   while(std::getline(tamarin_stream, line) && 
         (line.size() < 5 || line.substr(0,5) != "====="));
 

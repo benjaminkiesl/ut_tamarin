@@ -99,24 +99,20 @@ ProverResult BashLemmaProcessor::ExtractResultForLemma(
         const string& lemma_name) {
   string line;
 
-  // Move stream to begin of lemma results
-  while(std::getline(tamarin_stream, line) && line.substr(0,5) != "=====");
-  for(int i=1;i<=4;i++) std::getline(tamarin_stream, line);
+  // Move stream to begin of lemma name section
+  while(std::getline(tamarin_stream, line) && 
+        (line.size() < 5 || line.substr(0,5) != "====="));
 
-  // Move to line for the lemma with name equal to lemma_name
-  while(getline(tamarin_stream, line)
-        && ExtractLemmaName(line) != lemma_name);
+  // Move to result line for the lemma with name equal to lemma_name
+  while(std::getline(tamarin_stream, line) && 
+        (line.find("steps)") == std::string::npos ||
+         line.find(lemma_name) == std::string::npos));
 
   if(line.find("falsified") != string::npos)
     return ProverResult::False;
   else if(line.find("verified") != string::npos)
     return ProverResult::True;
   return ProverResult::Unknown;
-}
-
-string BashLemmaProcessor::ExtractLemmaName(string line) {
-  line = line.substr(line.find_first_not_of(" \f\n\r\t\v"));
-  return line.substr(0, line.find(' '));
 }
 
 } // namespace uttamarin
